@@ -6,7 +6,7 @@
   <title>مصنع المتاجر • منصة المتاجر الإلكترونية الذكية</title>
   
   <!-- SEO & Social Meta -->
-  <meta name="description" content="المنصة المتكاملة لصناعة المتاجر الإلكترونية بكود تفعيل محدد المدة، رفع مباشر على Catbox، وإدارة الصفقات الفورية بدون حساب للعميل." />
+  <meta name="description" content="المنصة المتكاملة لصناعة المتاجر الإلكترونية بكود تفعيل محدد المدة، وإدارة الصفقات الفورية بدون حساب للعميل." />
   <meta property="og:title" content="مصنع المتاجر • stores.privateee.online" />
   <meta property="og:description" content="أنشئ متجرك الإلكتروني في ثوانٍ مع تحديد مدة الصلاحية وإدارة المخزون والصفقات." />
 
@@ -53,13 +53,13 @@
   <!-- QRCode.js for direct store QR codes -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- Firebase Web SDK (Compat - Universal support for file:// and http://) -->
+  <!-- Firebase Web SDK (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
-  <!-- Custom Stylesheet -->
+  <!-- Inline CSS -->
   <style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
@@ -255,7 +255,7 @@ body {
 
 /* Image preview containers */
 .aspect-product {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 4;
   object-fit: cover;
 }
 
@@ -267,7 +267,7 @@ body {
 }
 
 
-</style>
+  </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-slate-950">
 
@@ -325,10 +325,8 @@ body {
     </div>
   </header>
 
-  <!-- Main View Area (Dynamically rendered by Router) -->
-  <main id="main-content" class="flex-1 w-full">
-    <!-- Content is rendered dynamically by js/app.bundle.js -->
-  </main>
+  <!-- Main View Area -->
+  <main id="main-content" class="flex-1 w-full"></main>
 
   <!-- Site Footer -->
   <footer id="main-footer" class="border-t border-slate-900 bg-slate-950/80 py-8 px-4 text-center text-xs text-gray-400 mt-12">
@@ -354,7 +352,7 @@ body {
     </div>
   </footer>
 
-  <!-- Universal Master Application Script -->
+  <!-- Master JavaScript Application -->
   <script>
 // Store Factory Platform - Master Universal Bundle
 // Supports file://, http://, and https:// environments
@@ -468,16 +466,16 @@ body {
   ensureInitialSeed();
 
   // =========================================================================
-  // 3. Catbox.moe Image Uploader
+  // 3. Ultra-Fast Image Uploader (Zero third-party vendor names shown to users)
   // =========================================================================
   async function uploadImageToCatbox(file, onProgress = () => {}) {
     if (!file) throw new Error('يرجى اختيار صورة صالحة');
     if (!file.type.startsWith('image/')) throw new Error('الملف المختار ليس صورة');
     if (file.size > 20 * 1024 * 1024) throw new Error('حجم الصورة كبير جداً، الحد الأقصى 20 ميجابايت');
 
-    onProgress('جاري الرفع إلى Catbox...');
+    onProgress('جاري معالجة ورفع الصورة...');
 
-    // 1. Direct Catbox upload
+    // 1. Direct upload
     try {
       const fd = new FormData();
       fd.append('reqtype', 'fileupload');
@@ -491,12 +489,12 @@ body {
       if (res.ok) {
         const text = (await res.text()).trim();
         if (text.startsWith('http')) {
-          onProgress('تم الرفع إلى Catbox بنجاح!');
+          onProgress('تم رفع الصورة بنجاح!');
           return text;
         }
       }
     } catch (e) {
-      console.warn('Direct Catbox upload failed, trying proxy...', e.message);
+      console.warn('Direct upload fallback triggered:', e.message);
     }
 
     // 2. CORS Proxy upload
@@ -507,7 +505,7 @@ body {
 
     for (const pUrl of proxies) {
       try {
-        onProgress('جاري الرفع عبر سيرفر وسيط...');
+        onProgress('جاري الرفع عبر السيرفر السحابي...');
         const fd = new FormData();
         fd.append('reqtype', 'fileupload');
         fd.append('fileToUpload', file);
@@ -516,12 +514,12 @@ body {
         if (pRes.ok) {
           const text = (await pRes.text()).trim();
           if (text.startsWith('http')) {
-            onProgress('تم الرفع بنجاح!');
+            onProgress('تم رفع الصورة بنجاح!');
             return text;
           }
         }
       } catch (err) {
-        console.warn('Proxy failed:', pUrl);
+        console.warn('Proxy fallback next');
       }
     }
 
@@ -535,7 +533,28 @@ body {
   }
 
   // =========================================================================
-  // 4. Database Layer (Codes, Stores, Products, Orders)
+  // 4. Rating & Badge Helper (Stars 1-5 or Flame)
+  // =========================================================================
+  function renderRatingHtml(rating) {
+    if (rating === 'flame') {
+      return `
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-400 border border-orange-500/40 shadow-sm animate-pulse" title="قطعة مميزة / الأكثر طلباً">
+          <i data-lucide="flame" class="w-3.5 h-3.5 text-orange-400 fill-orange-400"></i>
+          <span>شعلة 🔥</span>
+        </span>
+      `;
+    }
+
+    const count = parseInt(rating, 10) || 5;
+    let stars = '';
+    for (let i = 0; i < count; i++) {
+      stars += `<i data-lucide="star" class="w-3.5 h-3.5 text-amber-400 fill-amber-400 inline"></i>`;
+    }
+    return `<div class="flex items-center gap-0.5" title="${count} من 5 نجوم">${stars}</div>`;
+  }
+
+  // =========================================================================
+  // 5. Database Layer (Codes, Stores, Categories, Products, Orders)
   // =========================================================================
 
   // Validate Code
@@ -687,6 +706,7 @@ body {
       whatsapp: whatsapp ? whatsapp.trim().replace(/[^0-9+]/g, '') : '',
       currency: currency.trim() || 'ج.م',
       bio: bio.trim(),
+      categories: ['عام'],
       activationCode: activationCode.toUpperCase(),
       durationDays: durationDays,
       createdAt: now,
@@ -720,13 +740,17 @@ body {
       try {
         const snap = await withTimeout(fbDb.collection('stores').where('slug', '==', clean).get(), 2500);
         if (!snap.empty) {
-          return { id: snap.docs[0].id, ...snap.docs[0].data() };
+          const s = { id: snap.docs[0].id, ...snap.docs[0].data() };
+          if (!s.categories || !s.categories.length) s.categories = ['عام'];
+          return s;
         }
       } catch (e) {}
     }
 
     const localStores = getLocalData('stores', []);
-    return localStores.find(s => s.slug.toLowerCase() === clean) || null;
+    const found = localStores.find(s => s.slug.toLowerCase() === clean);
+    if (found && (!found.categories || !found.categories.length)) found.categories = ['عام'];
+    return found || null;
   }
 
   // Get Store by Owner
@@ -735,17 +759,27 @@ body {
       try {
         if (uid) {
           const snap = await withTimeout(fbDb.collection('stores').where('ownerUid', '==', uid).get(), 2000);
-          if (!snap.empty) return { id: snap.docs[0].id, ...snap.docs[0].data() };
+          if (!snap.empty) {
+            const s = { id: snap.docs[0].id, ...snap.docs[0].data() };
+            if (!s.categories || !s.categories.length) s.categories = ['عام'];
+            return s;
+          }
         }
         if (email) {
           const snap2 = await withTimeout(fbDb.collection('stores').where('ownerEmail', '==', email.toLowerCase()).get(), 2000);
-          if (!snap2.empty) return { id: snap2.docs[0].id, ...snap2.docs[0].data() };
+          if (!snap2.empty) {
+            const s2 = { id: snap2.docs[0].id, ...snap2.docs[0].data() };
+            if (!s2.categories || !s2.categories.length) s2.categories = ['عام'];
+            return s2;
+          }
         }
       } catch (e) {}
     }
 
     const localStores = getLocalData('stores', []);
-    return localStores.find(s => s.ownerUid === uid || (email && s.ownerEmail?.toLowerCase() === email.toLowerCase())) || null;
+    const found = localStores.find(s => s.ownerUid === uid || (email && s.ownerEmail?.toLowerCase() === email.toLowerCase()));
+    if (found && (!found.categories || !found.categories.length)) found.categories = ['عام'];
+    return found || null;
   }
 
   // Get Store by ID
@@ -753,11 +787,17 @@ body {
     if (fbDb) {
       try {
         const snap = await withTimeout(fbDb.collection('stores').doc(storeId).get(), 2000);
-        if (snap.exists) return { id: snap.id, ...snap.data() };
+        if (snap.exists) {
+          const s = { id: snap.id, ...snap.data() };
+          if (!s.categories || !s.categories.length) s.categories = ['عام'];
+          return s;
+        }
       } catch (e) {}
     }
     const localStores = getLocalData('stores', []);
-    return localStores.find(s => s.id === storeId) || null;
+    const found = localStores.find(s => s.id === storeId);
+    if (found && (!found.categories || !found.categories.length)) found.categories = ['عام'];
+    return found || null;
   }
 
   // Check if store is active
@@ -838,6 +878,26 @@ body {
     }
   }
 
+  // Update Store Categories
+  async function updateStoreCategories(storeId, categories) {
+    const cleanCats = Array.from(new Set(categories.map(c => c.trim()).filter(Boolean)));
+    if (!cleanCats.includes('عام')) cleanCats.unshift('عام');
+
+    if (fbDb) {
+      try {
+        await withTimeout(fbDb.collection('stores').doc(storeId).update({ categories: cleanCats }), 2500);
+      } catch (e) {}
+    }
+
+    const localStores = getLocalData('stores', []);
+    const target = localStores.find(s => s.id === storeId);
+    if (target) {
+      target.categories = cleanCats;
+      setLocalData('stores', localStores);
+    }
+    return cleanCats;
+  }
+
   // Get All Stores (Admin)
   async function getAllStores() {
     let list = [];
@@ -870,7 +930,7 @@ body {
     return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }
 
-  async function addProduct(storeId, { title, price, quantity, description, imageUrl, category }) {
+  async function addProduct(storeId, { title, price, quantity, description, imageUrl, category = 'عام', rating = '5' }) {
     const prodId = `prod_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const productData = {
       id: prodId,
@@ -881,6 +941,7 @@ body {
       description: (description || '').trim(),
       imageUrl: imageUrl || 'https://files.catbox.moe/placeholder.png',
       category: (category || 'عام').trim(),
+      rating: rating || '5', // '1' | '2' | '3' | '4' | '5' | 'flame'
       isActive: true,
       createdAt: Date.now()
     };
@@ -1032,7 +1093,7 @@ body {
   }
 
   // =========================================================================
-  // 5. Auth Module
+  // 6. Auth Module
   // =========================================================================
   const SESSION_KEY = 'msn3_current_merchant_session';
   const ADMIN_SESSION_KEY = 'msn3_admin_session';
@@ -1129,7 +1190,7 @@ body {
   }
 
   // =========================================================================
-  // 6. Router & View Orchestrator
+  // 7. Router & View Orchestrator
   // =========================================================================
   let activeStore = null;
   let countdownInterval = null;
@@ -1182,7 +1243,7 @@ body {
     if (targetHash !== null) {
       if (window.location.hash !== targetHash) {
         window.location.hash = targetHash;
-        return; // hashchange will trigger navigate
+        return;
       }
     }
 
@@ -1234,7 +1295,7 @@ body {
   }
 
   // =========================================================================
-  // 7. Landing Page
+  // 8. Landing Page
   // =========================================================================
   function renderLandingPage(container) {
     const currentMerchant = getCurrentMerchant();
@@ -1255,7 +1316,7 @@ body {
           </h1>
 
           <p class="text-gray-300 text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            المنصة المتكاملة لصناعة وإدارة المتاجر: أدخل كود التفعيل لتحديد مدة متجرك، ارفع صور منتجاتك مباشرة على سيرفرات Catbox، واستقبل طلبات العملاء والشحن الفوري بدون الحاجة لتسجيل حساب للعميل.
+            المنصة المتكاملة لصناعة وإدارة المتاجر: أدخل كود التفعيل لتحديد مدة متجرك، ارفع صور منتجاتك بسرعة وجودة فائقة، واستقبل طلبات العملاء والشحن الفوري بدون الحاجة لتسجيل حساب للعميل.
           </p>
 
           <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -1302,11 +1363,11 @@ body {
 
           <div class="glass-card p-6 rounded-3xl border border-slate-800 space-y-3 text-right">
             <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-              <i data-lucide="cloud-upload" class="w-6 h-6"></i>
+              <i data-lucide="cloud-lightning" class="w-6 h-6"></i>
             </div>
-            <h3 class="text-lg font-bold text-white">رفع الصور مباشرة على Catbox</h3>
+            <h3 class="text-lg font-bold text-white">سيرفرات سريعة جداً للصور</h3>
             <p class="text-xs text-gray-400 leading-relaxed">
-              رفع سريع وسلس لكل لوجوهات المتاجر وصور المنتجات على سيرفرات Catbox المباشرة لتوفير أقصى سرعة تحميل للعملاء.
+              رفع فوري وعالي الجودة لكافة صور المنتجات وشعار المتجر مع معالجة مباشرة وضمان أقصى سرعة تحميل للعملاء.
             </p>
           </div>
 
@@ -1322,31 +1383,31 @@ body {
 
           <div class="glass-card p-6 rounded-3xl border border-slate-800 space-y-3 text-right">
             <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-              <i data-lucide="user-check" class="w-6 h-6"></i>
+              <i data-lucide="star" class="w-6 h-6"></i>
             </div>
-            <h3 class="text-lg font-bold text-white">شراء فوري بدون حساب للعميل</h3>
+            <h3 class="text-lg font-bold text-white">تقييم النجوم وشعلة التميز</h3>
             <p class="text-xs text-gray-400 leading-relaxed">
-              يدخل العميل مباشرة ويطلب بالـ ID ورقم الواتساب فقط، ويصل الطلب فوراً لصفحة طلبات التاجر لتسليمه.
+              إمكانية تحديد عدد النجوم للمنتج (1 إلى 5 نجوم) أو شعلة التميز والأكثر طلباً لتظهر بشكل أنيق وجذاب للعملاء.
             </p>
           </div>
 
           <div class="glass-card p-6 rounded-3xl border border-slate-800 space-y-3 text-right">
             <div class="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
-              <i data-lucide="qr-code" class="w-6 h-6"></i>
+              <i data-lucide="layers" class="w-6 h-6"></i>
             </div>
-            <h3 class="text-lg font-bold text-white">رابط مباشر وباركود QR لكل متجر</h3>
+            <h3 class="text-lg font-bold text-white">إدارة الأقسام والتصنيفات</h3>
             <p class="text-xs text-gray-400 leading-relaxed">
-              يحصل التاجر على رابط مباشر خاص بمتجره (stores.privateee.online/?store=...) مع باركود QR قابل للمشاركة على واتساب.
+              إمكانية إضافة أقسام متعددة في المتجر، وتصنيف المنتجات حسب القسم مع فلاتر سريعة لتسهيل الشراء للعملاء.
             </p>
           </div>
 
           <div class="glass-card p-6 rounded-3xl border border-slate-800 space-y-3 text-right">
             <div class="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
-              <i data-lucide="shield-check" class="w-6 h-6"></i>
+              <i data-lucide="user-check" class="w-6 h-6"></i>
             </div>
-            <h3 class="text-lg font-bold text-white">قاعدة بيانات Firebase مدمجة</h3>
+            <h3 class="text-lg font-bold text-white">شراء فوري بدون حساب للعميل</h3>
             <p class="text-xs text-gray-400 leading-relaxed">
-              مربوطة مع Firebase (msn3-store) لتسجيل الحسابات والطلبات وتخزين المنتجات والأكواد بسرعة وأمان.
+              يدخل العميل ويطلب بالـ ID ورقم الواتساب فقط، ويصل الطلب فوراً لصفحة طلبات التاجر مع رابط ورسالة واتساب تلقائية.
             </p>
           </div>
         </div>
@@ -1375,7 +1436,7 @@ body {
   }
 
   // =========================================================================
-  // 8. Merchant Registration View (Code Verification First -> Form Revealed)
+  // 9. Merchant Registration View
   // =========================================================================
   function initMerchantModule(action = 'dashboard') {
     const container = document.getElementById('merchant-container');
@@ -1424,7 +1485,6 @@ body {
           <p class="text-gray-400 text-sm mt-1">أدخل كود الاشتراك لتفعيل متجرك وتحديد مدة الصلاحية</p>
         </div>
 
-        <!-- Live Duration Banner (Shown once code is entered) -->
         <div id="code-duration-banner" class="hidden mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-indigo-500/20 border border-emerald-500/40 text-center animate-pulse-glow">
           <div class="flex items-center justify-center gap-2 text-emerald-400 font-extrabold text-lg">
             <i data-lucide="badge-check" class="w-6 h-6"></i>
@@ -1433,7 +1493,6 @@ body {
           <p class="text-xs text-emerald-200/80 mt-1">تم التحقق من الكود بنجاح. سيبدأ احتساب هذه المدة فور إتمام إنشاء المتجر.</p>
         </div>
 
-        <!-- Step 1: Code Verification -->
         <div id="registration-step-code" class="space-y-4">
           <div class="p-6 bg-slate-900/80 rounded-2xl border border-slate-700/80 space-y-4">
             <div>
@@ -1464,9 +1523,7 @@ body {
           </div>
         </div>
 
-        <!-- Step 2: Store Details Form (Revealed after code verification) -->
         <form id="registration-step-details" class="space-y-6 hidden mt-6 pt-6 border-t border-slate-800">
-          
           <div class="border-b border-slate-800 pb-3">
             <h3 class="text-base font-bold text-cyan-400 flex items-center gap-2">
               <i data-lucide="store" class="w-5 h-5"></i>
@@ -1499,15 +1556,13 @@ body {
             </div>
           </div>
 
-          <!-- Live Direct Link Preview -->
           <div class="p-3 bg-slate-950/80 rounded-xl border border-cyan-500/30 flex items-center justify-between text-xs font-code">
             <span class="text-gray-400">رابط المتجر المباشر للعملاء:</span>
             <span id="preview-direct-link" class="text-cyan-400 font-bold truncate max-w-[280px]">stores.privateee.online/?store=...</span>
           </div>
 
-          <!-- Store Logo Upload (Catbox direct) -->
           <div>
-            <label class="block text-xs font-semibold text-gray-300 mb-2">لوجو المتجر (يُرفع على Catbox مباشرة) *</label>
+            <label class="block text-xs font-semibold text-gray-300 mb-2">لوجو المتجر *</label>
             <div class="flex items-center gap-4">
               <div id="logo-preview-box" class="w-16 h-16 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                 <i data-lucide="image" class="w-6 h-6 text-gray-500"></i>
@@ -1527,7 +1582,6 @@ body {
             </div>
           </div>
 
-          <!-- WhatsApp & Currency -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-semibold text-gray-300 mb-2">رقم الواتساب للتواصل مع العملاء *</label>
@@ -1552,7 +1606,6 @@ body {
             </div>
           </div>
 
-          <!-- Merchant Auth Credentials -->
           ${!existingSession ? `
             <div class="border-t border-slate-800 pt-4 space-y-4">
               <h4 class="text-xs font-bold text-gray-300">بيانات تسجيل الدخول لحساب التاجر</h4>
@@ -1606,7 +1659,6 @@ body {
     const nameInput = document.getElementById('reg-store-name');
     const previewLink = document.getElementById('preview-direct-link');
 
-    // Enter key support on code input
     codeInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -1614,7 +1666,6 @@ body {
       }
     });
 
-    // Auto slug generator
     nameInput.oninput = () => {
       if (!slugInput.dataset.manual) {
         const suggested = nameInput.value
@@ -1633,7 +1684,6 @@ body {
       previewLink.textContent = `stores.privateee.online/?store=${val || '...'}`;
     };
 
-    // Verify Code Click
     btnVerify.onclick = async () => {
       const codeVal = codeInput.value.trim();
       if (!codeVal) {
@@ -1667,7 +1717,6 @@ body {
       if (window.lucide) window.lucide.createIcons();
     };
 
-    // Logo upload
     const btnUploadLogo = document.getElementById('btn-upload-logo');
     const fileInput = document.getElementById('reg-store-logo-file');
     const previewBox = document.getElementById('logo-preview-box');
@@ -1691,7 +1740,6 @@ body {
       }
     };
 
-    // Submit Store Creation Form
     detailsForm.onsubmit = async (e) => {
       e.preventDefault();
       if (!validatedCode) {
@@ -1766,7 +1814,7 @@ body {
   }
 
   // =========================================================================
-  // 9. Merchant Login & Expired Screen
+  // 10. Merchant Login & Expired Screen
   // =========================================================================
   function renderMerchantLogin(container) {
     container.innerHTML = `
@@ -1940,7 +1988,7 @@ body {
   }
 
   // =========================================================================
-  // 10. Merchant Dashboard (Products, Orders with Deal Completion, Settings)
+  // 11. Merchant Dashboard (Products, Category Manager, Orders, Settings)
   // =========================================================================
   async function renderMerchantDashboard(container, store) {
     if (countdownInterval) clearInterval(countdownInterval);
@@ -2065,13 +2113,53 @@ body {
     renderProductsTab(contentArea, store);
   }
 
-  // Products Tab
+  // Products Tab (With Category Management & Rating Display)
   async function renderProductsTab(contentDiv, store) {
+    if (!store.categories || !store.categories.length) {
+      store.categories = ['عام'];
+    }
+
     contentDiv.innerHTML = `
       <div class="space-y-6">
+        
+        <!-- Category Manager Card -->
+        <div class="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>
+                <span>إدارة أقسام المتجر</span>
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">أضف أقساماً لمنتجاتك (مثل: ألعاب، حسابات، اشتراكات) لتنظيم متجرك وتسهيل الفلترة لعملائك</p>
+            </div>
+            
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <input 
+                type="text" 
+                id="new-category-input" 
+                placeholder="اسم القسم الجديد..." 
+                class="px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:border-cyan-500 flex-1 sm:w-48"
+              />
+              <button 
+                id="btn-add-category" 
+                class="px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:opacity-95 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap shadow-md"
+              >
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>إضافة قسم</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Existing Categories Pills -->
+          <div id="merchant-category-pills" class="flex flex-wrap items-center gap-2">
+            <!-- Rendered below -->
+          </div>
+        </div>
+
+        <!-- Products Action Bar -->
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h2 class="text-xl font-bold text-white">إدارة المنتجات والمخزون</h2>
+            <h2 class="text-xl font-bold text-white">قائمة المنتجات والمخزون</h2>
             <p class="text-xs text-gray-400">الكمية لا تنقص إلا عند تأكيدك لإتمام الصفقة مع العميل</p>
           </div>
           <button id="btn-open-add-product" class="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-95 text-white font-bold rounded-2xl shadow-lg transition flex items-center gap-2 text-sm">
@@ -2079,12 +2167,71 @@ body {
             <span>إضافة منتج جديد</span>
           </button>
         </div>
+
+        <!-- Products Grid -->
         <div id="merchant-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div class="col-span-full py-12 text-center text-gray-500">جاري تحميل المنتجات...</div>
         </div>
       </div>
     `;
-    if (window.lucide) window.lucide.createIcons();
+
+    // Render Category Pills
+    function renderCategoryPills() {
+      const pillsContainer = document.getElementById('merchant-category-pills');
+      pillsContainer.innerHTML = store.categories.map(cat => {
+        const isDefault = cat === 'عام';
+        return `
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 border border-slate-700 text-gray-200">
+            <span>${cat}</span>
+            ${!isDefault ? `
+              <button data-cat="${cat}" class="btn-delete-cat text-gray-500 hover:text-rose-400 transition" title="حذف القسم">
+                <i data-lucide="x" class="w-3 h-3"></i>
+              </button>
+            ` : ''}
+          </span>
+        `;
+      }).join('');
+
+      if (window.lucide) window.lucide.createIcons();
+
+      pillsContainer.querySelectorAll('.btn-delete-cat').forEach(btn => {
+        btn.onclick = async () => {
+          const catToDelete = btn.dataset.cat;
+          const updatedCats = store.categories.filter(c => c !== catToDelete);
+          store.categories = await updateStoreCategories(store.id, updatedCats);
+          renderCategoryPills();
+          Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'تم حذف القسم', timer: 1200, showConfirmButton: false });
+        };
+      });
+    }
+
+    renderCategoryPills();
+
+    // Add Category Button
+    const newCatInput = document.getElementById('new-category-input');
+    const btnAddCat = document.getElementById('btn-add-category');
+
+    async function handleAddCategory() {
+      const catName = newCatInput.value.trim();
+      if (!catName) return;
+      if (store.categories.includes(catName)) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'هذا القسم موجود بالفعل', timer: 1500, showConfirmButton: false });
+        return;
+      }
+      store.categories.push(catName);
+      store.categories = await updateStoreCategories(store.id, store.categories);
+      newCatInput.value = '';
+      renderCategoryPills();
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'تمت إضافة القسم بنجاح!', timer: 1500, showConfirmButton: false });
+    }
+
+    btnAddCat.onclick = handleAddCategory;
+    newCatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddCategory();
+      }
+    });
 
     const products = await getStoreProducts(store.id);
     const grid = document.getElementById('merchant-products-grid');
@@ -2106,7 +2253,7 @@ body {
         return `
           <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-slate-800">
             <div>
-              <div class="relative aspect-video bg-slate-950 overflow-hidden">
+              <div class="relative aspect-[3/4] bg-slate-950 overflow-hidden">
                 <img src="${prod.imageUrl || 'https://files.catbox.moe/placeholder.png'}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/300x200?text=Product'" />
                 <span class="absolute top-3 right-3 px-2.5 py-1 rounded-xl text-xs font-bold ${isOutOfStock ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950'}">
                   ${isOutOfStock ? 'نفذت الكمية ❌' : `متوفر: ${prod.quantity}`}
@@ -2114,9 +2261,15 @@ body {
                 <span class="absolute bottom-3 left-3 px-3 py-1 rounded-xl text-xs font-bold bg-slate-900/90 text-cyan-300 font-code">
                   ${prod.price} ${store.currency || 'ج.م'}
                 </span>
+                <span class="absolute top-3 left-3 px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-slate-900/90 text-cyan-400 border border-cyan-500/30">
+                  ${prod.category || 'عام'}
+                </span>
               </div>
-              <div class="p-4 text-right space-y-1">
-                <h3 class="font-bold text-white text-base truncate">${prod.title}</h3>
+              <div class="p-4 text-right space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                  <h3 class="font-bold text-white text-base truncate">${prod.title}</h3>
+                  ${renderRatingHtml(prod.rating)}
+                </div>
                 <p class="text-xs text-gray-400 line-clamp-2">${prod.description || ''}</p>
               </div>
             </div>
@@ -2155,9 +2308,14 @@ body {
     };
   }
 
-  // Add Product Modal
+  // Add Product Modal (With Category Select & Rating Picker: 1-5 Stars or Flame)
   function openProductModal(store, existingProd = null, onSuccess = () => {}) {
     let uploadedUrl = existingProd ? existingProd.imageUrl : '';
+    let selectedRating = existingProd ? (existingProd.rating || '5') : '5';
+
+    if (!store.categories || !store.categories.length) {
+      store.categories = ['عام'];
+    }
 
     const modalHtml = `
       <div id="product-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
@@ -2165,7 +2323,7 @@ body {
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 class="text-lg font-bold text-white flex items-center gap-2">
               <i data-lucide="package-plus" class="w-5 h-5 text-cyan-400"></i>
-              <span>إضافة منتج جديد للمتجر</span>
+              <span>${existingProd ? 'تعديل المنتج' : 'إضافة منتج جديد للمتجر'}</span>
             </h3>
             <button id="btn-close-prod-modal" class="p-1 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
           </div>
@@ -2173,31 +2331,79 @@ body {
           <form id="prod-modal-form" class="space-y-4">
             <div>
               <label class="block text-xs font-semibold text-gray-300 mb-1">اسم المنتج *</label>
-              <input type="text" id="modal-prod-title" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-cyan-500" placeholder="مثال: شحن 1000 جوهرة فري فاير" />
+              <input type="text" id="modal-prod-title" required value="${existingProd ? existingProd.title : ''}" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-cyan-500" placeholder="مثال: شحن 1000 جوهرة فري فاير" />
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <!-- Categories & Rating -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-semibold text-gray-300 mb-1">السعر (${store.currency || 'ج.م'}) *</label>
-                <input type="number" step="0.01" min="0" id="modal-prod-price" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500" placeholder="50" />
+                <label class="block text-xs font-semibold text-gray-300 mb-1">قسم المنتج (التصنيف) *</label>
+                <select id="modal-prod-category" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-cyan-500 text-xs font-bold">
+                  ${store.categories.map(c => `<option value="${c}" ${existingProd && existingProd.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
               </div>
+
               <div>
                 <label class="block text-xs font-semibold text-gray-300 mb-1">الكمية بالمخزون *</label>
-                <input type="number" min="0" id="modal-prod-qty" value="10" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500" />
+                <input type="number" min="0" id="modal-prod-qty" value="${existingProd ? existingProd.quantity : '10'}" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500" />
               </div>
             </div>
 
+            <!-- Rating Picker: 1 to 5 Stars or Flame -->
             <div>
-              <label class="block text-xs font-semibold text-gray-300 mb-1">صورة المنتج (Catbox) *</label>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">تقييم ومميزات القطعة (النجوم أو الشعلة) *</label>
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-2" id="modal-rating-picker-container">
+                <label class="rating-box flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 cursor-pointer hover:border-amber-400 transition text-center" data-val="1">
+                  <input type="radio" name="prod-rating" value="1" class="hidden" ${selectedRating === '1' ? 'checked' : ''} />
+                  <span class="text-amber-400 font-bold text-xs">⭐ 1</span>
+                  <span class="text-[10px] text-gray-400 mt-0.5">نجمة</span>
+                </label>
+                <label class="rating-box flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 cursor-pointer hover:border-amber-400 transition text-center" data-val="2">
+                  <input type="radio" name="prod-rating" value="2" class="hidden" ${selectedRating === '2' ? 'checked' : ''} />
+                  <span class="text-amber-400 font-bold text-xs">⭐⭐ 2</span>
+                  <span class="text-[10px] text-gray-400 mt-0.5">نجمتان</span>
+                </label>
+                <label class="rating-box flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 cursor-pointer hover:border-amber-400 transition text-center" data-val="3">
+                  <input type="radio" name="prod-rating" value="3" class="hidden" ${selectedRating === '3' ? 'checked' : ''} />
+                  <span class="text-amber-400 font-bold text-xs">⭐⭐⭐ 3</span>
+                  <span class="text-[10px] text-gray-400 mt-0.5">3 نجوم</span>
+                </label>
+                <label class="rating-box flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 cursor-pointer hover:border-amber-400 transition text-center" data-val="4">
+                  <input type="radio" name="prod-rating" value="4" class="hidden" ${selectedRating === '4' ? 'checked' : ''} />
+                  <span class="text-amber-400 font-bold text-xs">⭐⭐⭐⭐ 4</span>
+                  <span class="text-[10px] text-gray-400 mt-0.5">4 نجوم</span>
+                </label>
+                <label class="rating-box flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 cursor-pointer hover:border-amber-400 transition text-center" data-val="5">
+                  <input type="radio" name="prod-rating" value="5" class="hidden" ${selectedRating === '5' ? 'checked' : ''} />
+                  <span class="text-amber-400 font-bold text-xs">⭐⭐⭐⭐⭐</span>
+                  <span class="text-[10px] text-amber-300 mt-0.5 font-bold">5 نجوم</span>
+                </label>
+                <label class="rating-box flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 cursor-pointer hover:border-orange-500 transition text-center" data-val="flame">
+                  <input type="radio" name="prod-rating" value="flame" class="hidden" ${selectedRating === 'flame' ? 'checked' : ''} />
+                  <span class="text-orange-400 font-bold text-xs flex items-center justify-center gap-0.5">🔥 شعلة</span>
+                  <span class="text-[10px] text-orange-300 mt-0.5 font-bold">الأكثر طلباً</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Price -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1">السعر (${store.currency || 'ج.م'}) *</label>
+              <input type="number" step="0.01" min="0" id="modal-prod-price" value="${existingProd ? existingProd.price : ''}" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500" placeholder="50" />
+            </div>
+
+            <!-- Image Upload -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1">صورة المنتج *</label>
               <div class="flex items-center gap-4">
-                <div id="prod-image-preview" class="w-16 h-16 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-                  <i data-lucide="image" class="w-6 h-6 text-gray-600"></i>
+                <div id="prod-image-preview" class="w-16 h-20 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  ${existingProd && existingProd.imageUrl ? `<img src="${existingProd.imageUrl}" class="w-full h-full object-cover" />` : `<i data-lucide="image" class="w-6 h-6 text-gray-600"></i>`}
                 </div>
                 <div class="flex-1">
                   <input type="file" id="modal-prod-file" accept="image/*" class="hidden" />
                   <button type="button" id="btn-upload-prod-img" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-slate-700">
                     <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-                    <span>رفع الصورة على Catbox</span>
+                    <span>اختر صورة المنتج للرفع</span>
                   </button>
                   <div id="prod-upload-status" class="text-[11px] text-gray-400 mt-1">تظهر مباشرة لعملائك بالمتجر</div>
                 </div>
@@ -2206,11 +2412,11 @@ body {
 
             <div>
               <label class="block text-xs font-semibold text-gray-300 mb-1">تفاصيل ووصف المنتج</label>
-              <textarea id="modal-prod-desc" rows="3" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-cyan-500 text-sm" placeholder="اكتب هنا شروط أو تفاصيل التسليم..."></textarea>
+              <textarea id="modal-prod-desc" rows="3" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-cyan-500 text-sm" placeholder="اكتب هنا شروط أو تفاصيل التسليم...">${existingProd ? existingProd.description : ''}</textarea>
             </div>
 
             <button type="submit" id="btn-save-prod" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-95 text-white font-extrabold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-              <span>إضافة المنتج للمتجر</span>
+              <span>${existingProd ? 'حفظ التعديلات' : 'إضافة المنتج للمتجر'}</span>
               <i data-lucide="check" class="w-5 h-5"></i>
             </button>
           </form>
@@ -2229,6 +2435,28 @@ body {
     const uploadStatus = document.getElementById('prod-upload-status');
     const form = document.getElementById('prod-modal-form');
 
+    // Rating Box UI Highlighting
+    const ratingBoxes = modalEl.querySelectorAll('.rating-box');
+    function updateRatingUi(val) {
+      selectedRating = val;
+      ratingBoxes.forEach(box => {
+        if (box.dataset.val === val) {
+          if (val === 'flame') {
+            box.className = 'rating-box flex flex-col items-center justify-center p-2 rounded-xl border border-orange-500 bg-orange-500/20 text-center shadow-lg shadow-orange-500/20';
+          } else {
+            box.className = 'rating-box flex flex-col items-center justify-center p-2 rounded-xl border border-amber-500 bg-amber-500/20 text-center shadow-lg shadow-amber-500/20';
+          }
+        } else {
+          box.className = 'rating-box flex flex-col items-center justify-center p-2 rounded-xl border border-slate-700 bg-slate-900 cursor-pointer hover:border-slate-500 transition text-center';
+        }
+      });
+    }
+    updateRatingUi(selectedRating);
+
+    ratingBoxes.forEach(box => {
+      box.onclick = () => updateRatingUi(box.dataset.val);
+    });
+
     closeBtn.onclick = () => modalEl.remove();
 
     btnUpload.onclick = () => fileInput.click();
@@ -2240,7 +2468,7 @@ body {
         const url = await uploadImageToCatbox(file, (msg) => { uploadStatus.textContent = msg; });
         uploadedUrl = url;
         previewBox.innerHTML = `<img src="${url}" class="w-full h-full object-cover" />`;
-        uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع بنجاح!</span>`;
+        uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم رفع الصورة بنجاح!</span>`;
       } catch (err) {
         uploadStatus.innerHTML = `<span class="text-rose-400 font-bold">خطأ: ${err.message}</span>`;
       } finally {
@@ -2253,6 +2481,7 @@ body {
       const title = document.getElementById('modal-prod-title').value;
       const price = document.getElementById('modal-prod-price').value;
       const quantity = document.getElementById('modal-prod-qty').value;
+      const category = document.getElementById('modal-prod-category').value;
       const description = document.getElementById('modal-prod-desc').value;
 
       const saveBtn = document.getElementById('btn-save-prod');
@@ -2260,20 +2489,35 @@ body {
       saveBtn.innerHTML = `<span>جاري الحفظ...</span>`;
 
       try {
-        await addProduct(store.id, {
-          title,
-          price,
-          quantity,
-          description,
-          imageUrl: uploadedUrl || 'https://files.catbox.moe/placeholder.png'
-        });
+        if (existingProd) {
+          await updateProduct(existingProd.id, {
+            title,
+            price: parseFloat(price),
+            quantity: parseInt(quantity, 10),
+            category,
+            rating: selectedRating,
+            description,
+            imageUrl: uploadedUrl || existingProd.imageUrl
+          });
+        } else {
+          await addProduct(store.id, {
+            title,
+            price,
+            quantity,
+            category,
+            rating: selectedRating,
+            description,
+            imageUrl: uploadedUrl || 'https://files.catbox.moe/placeholder.png'
+          });
+        }
+
         modalEl.remove();
         onSuccess();
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'تمت إضافة المنتج بنجاح!', timer: 1500, showConfirmButton: false });
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'تم حفظ المنتج بنجاح!', timer: 1500, showConfirmButton: false });
       } catch (err) {
         Swal.fire({ icon: 'error', title: 'خطأ', text: err.message });
         saveBtn.disabled = false;
-        saveBtn.innerHTML = `<span>إضافة المنتج</span>`;
+        saveBtn.innerHTML = `<span>حفظ المنتج</span>`;
       }
     };
   }
@@ -2487,7 +2731,7 @@ body {
   }
 
   // =========================================================================
-  // 11. Admin Panel (Code Generator & All Stores)
+  // 12. Admin Panel (Code Generator & All Stores)
   // =========================================================================
   function renderAdminView() {
     const container = document.getElementById('admin-container');
@@ -2719,7 +2963,7 @@ body {
   }
 
   // =========================================================================
-  // 12. Customer Storefront & Checkout Modal
+  // 13. Customer Storefront & Checkout Modal (With Category Filters & Ratings)
   // =========================================================================
   async function initStorefront(slug, container) {
     container.innerHTML = `<div class="py-20 text-center text-gray-400 font-bold">جاري تحميل المتجر...</div>`;
@@ -2748,69 +2992,136 @@ body {
     }
 
     const products = await getStoreProducts(store.id);
+    let selectedCategory = 'all';
+
+    if (!store.categories || !store.categories.length) {
+      store.categories = ['عام'];
+    }
 
     container.innerHTML = `
       <div class="max-w-6xl mx-auto py-6 px-4 space-y-8">
+        
+        <!-- Store Header -->
         <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-cyan-500/20 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-right">
           <div class="flex flex-col sm:flex-row items-center gap-5">
-            <img src="${store.logoUrl || 'https://files.catbox.moe/placeholder.png'}" class="w-20 h-20 rounded-2xl object-cover border-2 border-cyan-500/40 bg-slate-900" />
+            <img src="${store.logoUrl || 'https://files.catbox.moe/placeholder.png'}" class="w-20 h-20 rounded-2xl object-cover border-2 border-cyan-500/40 bg-slate-900 shadow-md" />
             <div>
               <h1 class="text-2xl sm:text-3xl font-black text-white">${store.name}</h1>
               <p class="text-sm text-gray-300 mt-1 max-w-xl">${store.bio || 'أهلاً بكم في متجرنا! شحن فوري ومضمون.'}</p>
             </div>
           </div>
           ${store.whatsapp ? `
-            <a href="https://wa.me/${store.whatsapp.replace(/[^0-9]/g, '')}" target="_blank" class="px-5 py-3 bg-emerald-600 text-white font-bold rounded-2xl text-xs sm:text-sm">
-              تواصل مع المتجر واتساب
+            <a href="https://wa.me/${store.whatsapp.replace(/[^0-9]/g, '')}" target="_blank" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-xs sm:text-sm shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
+              <i data-lucide="message-circle" class="w-4 h-4"></i>
+              <span>تواصل مع المتجر واتساب</span>
             </a>
           ` : ''}
         </div>
 
-        <div id="storefront-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          ${!products.length ? `
-            <div class="col-span-full py-16 text-center text-gray-500 glass-panel rounded-3xl">لا توجد منتجات معروضة حالياً</div>
-          ` : products.map(prod => {
-            const isOutOfStock = prod.quantity <= 0;
+        <!-- Category Filter Bar -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none" id="storefront-category-pills">
+          <button class="storefront-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 text-white shadow-md shadow-cyan-600/20 whitespace-nowrap transition" data-cat="all">
+            🌟 جميع الأقسام (${products.length})
+          </button>
+          ${store.categories.map(c => {
+            const catCount = products.filter(p => (p.category || 'عام') === c).length;
             return `
-              <div class="glass-card rounded-3xl overflow-hidden flex flex-col justify-between border border-slate-800 shadow-xl">
-                <div>
-                  <div class="relative aspect-video bg-slate-950 overflow-hidden">
-                    <img src="${prod.imageUrl || 'https://files.catbox.moe/placeholder.png'}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/300x200?text=Product'" />
-                    <span class="absolute top-3 right-3 px-3 py-1 rounded-xl text-xs font-bold ${isOutOfStock ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950'}">
-                      ${isOutOfStock ? 'نفذت الكمية ❌' : `متوفر: ${prod.quantity}`}
-                    </span>
-                    <span class="absolute bottom-3 left-3 px-3 py-1.5 rounded-xl text-sm font-black bg-slate-950/90 text-cyan-300 font-code">
-                      ${prod.price} ${store.currency || 'ج.م'}
-                    </span>
-                  </div>
-                  <div class="p-5 text-right space-y-2">
-                    <h3 class="font-extrabold text-white text-lg">${prod.title}</h3>
-                    <p class="text-xs text-gray-300 line-clamp-3">${prod.description || ''}</p>
-                  </div>
-                </div>
-
-                <div class="p-5 pt-0">
-                  ${isOutOfStock ? `
-                    <button disabled class="w-full py-3.5 bg-slate-800 text-gray-500 font-bold rounded-xl text-sm cursor-not-allowed">نفذت الكمية</button>
-                  ` : `
-                    <button data-prod-id="${prod.id}" class="btn-buy-product w-full py-3.5 bg-gradient-to-r from-cyan-500 via-teal-500 to-indigo-600 hover:opacity-95 text-white font-extrabold rounded-xl text-sm shadow-lg">
-                      شراء الآن
-                    </button>
-                  `}
-                </div>
-              </div>
+              <button class="storefront-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900/90 text-gray-300 hover:text-white border border-slate-800 whitespace-nowrap transition" data-cat="${c}">
+                ${c} (${catCount})
+              </button>
             `;
           }).join('')}
+        </div>
+
+        <!-- Products Grid -->
+        <div id="storefront-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Rendered below -->
         </div>
       </div>
     `;
 
     if (window.lucide) window.lucide.createIcons();
 
-    container.querySelectorAll('.btn-buy-product').forEach(btn => {
+    const grid = document.getElementById('storefront-products-grid');
+    const catButtons = container.querySelectorAll('.storefront-cat-btn');
+
+    function renderStoreGrid() {
+      const filtered = selectedCategory === 'all' 
+        ? products 
+        : products.filter(p => (p.category || 'عام') === selectedCategory);
+
+      if (!filtered.length) {
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center text-gray-500 glass-panel rounded-3xl">
+            <i data-lucide="package-search" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+            <p class="text-base font-bold text-gray-400">لا توجد منتجات في هذا القسم حالياً</p>
+          </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+        return;
+      }
+
+      grid.innerHTML = filtered.map(prod => {
+        const isOutOfStock = prod.quantity <= 0;
+        return `
+          <div class="glass-card rounded-3xl overflow-hidden flex flex-col justify-between border border-slate-800 shadow-xl group">
+            <div>
+              <div class="relative aspect-[3/4] bg-slate-950 overflow-hidden">
+                <img src="${prod.imageUrl || 'https://files.catbox.moe/placeholder.png'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://via.placeholder.com/300x200?text=Product'" />
+                <span class="absolute top-3 right-3 px-3 py-1 rounded-xl text-xs font-bold ${isOutOfStock ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950'} shadow-lg backdrop-blur-md">
+                  ${isOutOfStock ? 'نفذت الكمية ❌' : `متوفر: ${prod.quantity}`}
+                </span>
+                <span class="absolute bottom-3 left-3 px-3 py-1.5 rounded-xl text-sm font-black bg-slate-950/90 text-cyan-300 font-code border border-cyan-500/30">
+                  ${prod.price} ${store.currency || 'ج.م'}
+                </span>
+                <span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900/90 text-cyan-400 border border-cyan-500/30 backdrop-blur-md">
+                  ${prod.category || 'عام'}
+                </span>
+              </div>
+              <div class="p-5 text-right space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                  <h3 class="font-extrabold text-white text-lg group-hover:text-cyan-300 transition truncate">${prod.title}</h3>
+                  ${renderRatingHtml(prod.rating)}
+                </div>
+                <p class="text-xs text-gray-300 line-clamp-3 leading-relaxed">${prod.description || 'شحن وتسليم فوري ومباشر.'}</p>
+              </div>
+            </div>
+
+            <div class="p-5 pt-0">
+              ${isOutOfStock ? `
+                <button disabled class="w-full py-3.5 bg-slate-800 text-gray-500 font-bold rounded-xl text-sm cursor-not-allowed">نفذت الكمية</button>
+              ` : `
+                <button data-prod-id="${prod.id}" class="btn-buy-product w-full py-3.5 bg-gradient-to-r from-cyan-500 via-teal-500 to-indigo-600 hover:opacity-95 text-white font-extrabold rounded-xl text-sm shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
+                  <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                  <span>شراء الآن</span>
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (window.lucide) window.lucide.createIcons();
+
+      grid.querySelectorAll('.btn-buy-product').forEach(btn => {
+        btn.onclick = () => {
+          const prod = products.find(p => p.id === btn.dataset.prodId);
+          if (prod) openBuyModal(store, prod);
+        };
+      });
+    }
+
+    renderStoreGrid();
+
+    // Category button switching
+    catButtons.forEach(btn => {
       btn.onclick = () => {
-        const prod = products.find(p => p.id === btn.dataset.prodId);
-        if (prod) openBuyModal(store, prod);
+        catButtons.forEach(b => {
+          b.className = 'storefront-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900/90 text-gray-300 hover:text-white border border-slate-800 whitespace-nowrap transition';
+        });
+        btn.className = 'storefront-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 text-white shadow-md shadow-cyan-600/20 whitespace-nowrap transition';
+        selectedCategory = btn.dataset.cat;
+        renderStoreGrid();
       };
     });
   }
@@ -2825,8 +3136,11 @@ body {
           </div>
 
           <div class="p-3 bg-slate-900 rounded-xl flex items-center justify-between text-xs">
-            <span class="font-bold text-white">${product.title}</span>
-            <span class="font-code text-cyan-400 font-bold">${product.price} ${store.currency || 'ج.م'}</span>
+            <div>
+              <span class="font-bold text-white block">${product.title}</span>
+              <span class="text-[11px] text-gray-400 font-bold">${product.category || 'عام'}</span>
+            </div>
+            <span class="font-code text-cyan-400 font-bold text-sm">${product.price} ${store.currency || 'ج.م'}</span>
           </div>
 
           <form id="customer-checkout-form" class="space-y-4">
@@ -2909,7 +3223,7 @@ body {
   }
 
   // =========================================================================
-  // 13. Global Event Delegation & Initialization
+  // 14. Global Event Delegation & Initialization
   // =========================================================================
   document.addEventListener('click', (e) => {
     const link = e.target.closest('a[href^="#"]');
@@ -2935,8 +3249,6 @@ body {
 
 })();
 
-
-</script>
-
+  </script>
 </body>
 </html>
