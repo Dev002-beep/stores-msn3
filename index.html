@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>مصنع المتاجر • منصة المتاجر الإلكترونية الذكية</title>
+  <title>AMG • منصة المتاجر الإلكترونية</title>
   
   <!-- SEO & Social Meta -->
-  <meta name="description" content="المنصة المتكاملة لصناعة المتاجر الإلكترونية بكود تفعيل محدد المدة، وإدارة الصفقات الفورية بدون حساب للعميل." />
-  <meta property="og:title" content="مصنع المتاجر • stores.privateee.online" />
+  <meta name="description" content="منصة AMG المتكاملة لصناعة وإدارة المتاجر الإلكترونية والصفقات الفورية." />
+  <meta property="og:title" content="AMG • منصة المتاجر الإلكترونية" />
   <meta property="og:description" content="أنشئ متجرك الإلكتروني في ثوانٍ مع تحديد مدة الصلاحية وإدارة المخزون والصفقات." />
 
   <!-- Google Fonts: Cairo & Plus Jakarta Sans -->
@@ -277,12 +277,11 @@ body {
       
       <!-- Brand Logo -->
       <a href="#" class="flex items-center gap-3 group">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition">
-          <i data-lucide="store" class="w-5 h-5 text-white"></i>
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition font-black text-white text-base">
+          AMG
         </div>
         <div>
-          <span class="font-black text-lg text-white tracking-wide">مصنع المتاجر</span>
-          <span class="block text-[10px] text-cyan-400 font-code font-bold -mt-1">stores.privateee.online</span>
+          <span class="font-black text-xl text-white tracking-wider">AMG</span>
         </div>
       </a>
 
@@ -296,9 +295,6 @@ body {
         </a>
         <a href="#merchant" class="nav-link-btn px-3 py-2 rounded-xl text-gray-300 hover:text-white transition" data-nav="merchant">
           لوحة التاجر
-        </a>
-        <a href="#admin" class="nav-link-btn px-3 py-2 rounded-xl text-gray-300 hover:text-white transition" data-nav="admin">
-          لوحة الإدارة
         </a>
       </nav>
 
@@ -332,20 +328,16 @@ body {
   <footer id="main-footer" class="border-t border-slate-900 bg-slate-950/80 py-8 px-4 text-center text-xs text-gray-400 mt-12">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-2">
-        <div class="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
-          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+        <div class="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-black text-[10px]">
+          AMG
         </div>
-        <span>منصة مصنع المتاجر • جميع الحقوق محفوظة &copy; 2026</span>
+        <span>AMG &copy; 2026 • جميع الحقوق محفوظة</span>
       </div>
 
-      <div class="flex items-center gap-4 text-xs font-code">
-        <span class="text-gray-400">Main: <strong class="text-gray-300">privateee.online</strong></span>
+      <div class="flex items-center gap-4 text-xs font-semibold">
+        <a href="#" class="hover:text-cyan-400 transition">الرئيسية</a>
         <span>•</span>
-        <span class="text-cyan-400">Stores: <strong class="text-cyan-300">stores.privateee.online</strong></span>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <a href="#admin" class="hover:text-cyan-400 transition">لوحة الأدمن</a>
+        <a href="#register" class="hover:text-cyan-400 transition">إنشاء متجر</a>
         <span>•</span>
         <a href="#merchant" class="hover:text-cyan-400 transition">دخول التاجر</a>
       </div>
@@ -532,6 +524,13 @@ body {
     } catch (e) {
       return DEFAULT_PRODUCT_IMG;
     }
+  }
+
+  // Egyptian Mobile Validator (Starts with 010, 011, 012, 015 - exactly 11 digits)
+  function isValidEgyptianPhone(phone) {
+    if (!phone) return false;
+    const clean = phone.trim().replace(/[\s-]/g, '');
+    return /^(010|011|012|015)[0-9]{8}$/.test(clean);
   }
 
   async function uploadImageToCatbox(file, onProgress = () => {}) {
@@ -798,7 +797,7 @@ body {
   }
 
   // Create Store
-  async function createStore({ ownerUid, ownerEmail, storeName, slug, logoUrl, whatsapp, currency = 'ج.م', bio = '', activationCode, durationDays }) {
+  async function createStore({ ownerUid, ownerEmail, storeName, slug, logoUrl, whatsapp = '', telegram = '', currency = 'ج.م', bio = '', activationCode, durationDays }) {
     const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
     const now = Date.now();
     const durationMs = durationDays * 24 * 60 * 60 * 1000;
@@ -813,6 +812,7 @@ body {
       slug: cleanSlug,
       logoUrl: logoUrl || DEFAULT_STORE_LOGO,
       whatsapp: whatsapp ? whatsapp.trim().replace(/[^0-9+]/g, '') : '',
+      telegram: telegram ? telegram.trim().replace(/^@/, '') : '',
       currency: currency.trim() || 'ج.م',
       bio: bio.trim(),
       categories: ['عام'],
@@ -914,6 +914,45 @@ body {
     if (!store) return false;
     if (store.status === 'suspended') return false;
     return Date.now() < (store.expiresAt || 0);
+  }
+
+  // Get direct store URL without hardcoded domain
+  function getStoreDirectUrl(slug) {
+    if (!slug) return '';
+    try {
+      const loc = window.location;
+      if (loc && loc.origin && loc.origin !== 'null' && !loc.origin.startsWith('file:')) {
+        return `${loc.origin}${loc.pathname}?store=${slug}`;
+      }
+    } catch (e) {}
+    return `?store=${slug}`;
+  }
+
+  // Format WhatsApp Link (Handles Egyptian phone numbers starting with 010, 011, 012, 015)
+  function formatEgyptianWaLink(rawPhone, messageText = '') {
+    if (!rawPhone) return '';
+    let digits = rawPhone.replace(/[^0-9]/g, '');
+    if (digits.length === 11 && digits.startsWith('01')) {
+      digits = '2' + digits; // Format as 2010...
+    }
+    const textQuery = messageText ? `?text=${encodeURIComponent(messageText)}` : '';
+    return `https://wa.me/${digits}${textQuery}`;
+  }
+
+  // Format Telegram Link (Username, link, or channel)
+  function formatTelegramLink(rawTg, messageText = '') {
+    if (!rawTg) return '';
+    let clean = rawTg.trim();
+    if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      return clean;
+    }
+    if (clean.startsWith('t.me/')) {
+      return `https://${clean}`;
+    }
+    if (clean.startsWith('@')) {
+      clean = clean.slice(1);
+    }
+    return `https://t.me/${clean}`;
   }
 
   // Subscription Time Remaining
@@ -1101,19 +1140,48 @@ body {
     setLocalData('products', localProducts);
   }
 
-  // Orders & Deals CRUD
-  async function createOrder({ storeId, productId, productTitle, productPrice, orderQuantity = 1, customerId, customerWhatsapp, notes = '' }) {
+  // Orders & Deals CRUD (Supports Multi-item Shopping Cart + Single Item fallback)
+  async function createOrder({ storeId, items = [], productId, productTitle, productPrice, orderQuantity = 1, customerId, customerWhatsapp, notes = '' }) {
     const orderId = `ORD-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+    
+    // Normalize items array
+    let orderItems = Array.isArray(items) && items.length > 0 ? items.map(it => ({
+      productId: it.productId || it.id,
+      title: it.title || it.productTitle || '',
+      price: parseFloat(it.price || it.productPrice) || 0,
+      quantity: parseInt(it.quantity || it.orderQuantity, 10) || 1,
+      category: it.category || 'عام',
+      imageUrl: it.imageUrl || ''
+    })) : [];
+
+    // Fallback if single product was passed
+    if (orderItems.length === 0 && (productId || productTitle)) {
+      orderItems.push({
+        productId: productId || '',
+        title: productTitle || '',
+        price: parseFloat(productPrice) || 0,
+        quantity: parseInt(orderQuantity, 10) || 1,
+        category: 'عام',
+        imageUrl: ''
+      });
+    }
+
+    const calculatedTotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalQty = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+    const summaryTitle = orderItems.map(item => `${item.title} (x${item.quantity})`).join(' + ');
+
     const orderData = {
       id: orderId,
       storeId,
-      productId,
-      productTitle,
-      productPrice: parseFloat(productPrice) || 0,
-      orderQuantity: parseInt(orderQuantity, 10) || 1,
-      totalPrice: (parseFloat(productPrice) || 0) * (parseInt(orderQuantity, 10) || 1),
-      customerId: customerId.trim(),
-      customerWhatsapp: customerWhatsapp.trim().replace(/[^0-9+]/g, ''),
+      items: orderItems,
+      // Backward-compatible fields
+      productId: orderItems[0] ? orderItems[0].productId : (productId || ''),
+      productTitle: summaryTitle || productTitle || '',
+      productPrice: orderItems[0] ? orderItems[0].price : (parseFloat(productPrice) || 0),
+      orderQuantity: totalQty,
+      totalPrice: calculatedTotal,
+      customerId: (customerId || '').trim(),
+      customerWhatsapp: (customerWhatsapp || '').trim().replace(/[^0-9+]/g, ''),
       notes: (notes || '').trim(),
       status: 'pending',
       createdAt: Date.now(),
@@ -1147,7 +1215,7 @@ body {
     return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }
 
-  // Complete Deal: Only decrease quantity when marked completed!
+  // Complete Deal: Only decrease quantity when marked completed! (Supports multiple items in an order)
   async function completeDeal(orderId, storeId) {
     let order = null;
     if (fbDb) {
@@ -1163,37 +1231,45 @@ body {
     if (!order) throw new Error('الطلب غير موجود');
     if (order.status === 'completed') throw new Error('الصفقة مكتملة بالفعل مسبقاً');
 
-    const quantityToDeduct = order.orderQuantity || 1;
-    const productId = order.productId;
+    // Determine list of items to deduct
+    const itemsToDeduct = (Array.isArray(order.items) && order.items.length > 0)
+      ? order.items
+      : [{ productId: order.productId, quantity: order.orderQuantity || 1 }];
 
-    // Fetch product
-    let product = null;
-    if (fbDb) {
-      try {
-        const pSnap = await withTimeout(fbDb.collection('products').doc(productId).get(), 2000);
-        if (pSnap.exists) product = pSnap.data();
-      } catch (e) {}
-    }
-    if (!product) {
-      const localProducts = getLocalData('products', []);
-      product = localProducts.find(p => p.id === productId);
-    }
+    const localProducts = getLocalData('products', []);
+    let totalDeducted = 0;
 
-    let newQuantity = 0;
-    if (product) {
-      newQuantity = Math.max(0, (parseInt(product.quantity, 10) || 0) - quantityToDeduct);
+    for (const item of itemsToDeduct) {
+      const pId = item.productId;
+      const qty = parseInt(item.quantity, 10) || 1;
+      if (!pId) continue;
+
+      let product = null;
       if (fbDb) {
         try {
-          await withTimeout(fbDb.collection('products').doc(productId).update({ quantity: newQuantity }), 2000);
+          const pSnap = await withTimeout(fbDb.collection('products').doc(pId).get(), 2000);
+          if (pSnap.exists) product = pSnap.data();
         } catch (e) {}
       }
-      const localProducts = getLocalData('products', []);
-      const pTarget = localProducts.find(p => p.id === productId);
-      if (pTarget) {
-        pTarget.quantity = newQuantity;
-        setLocalData('products', localProducts);
+      if (!product) {
+        product = localProducts.find(p => p.id === pId);
+      }
+
+      if (product) {
+        const newQty = Math.max(0, (parseInt(product.quantity, 10) || 0) - qty);
+        if (fbDb) {
+          try {
+            await withTimeout(fbDb.collection('products').doc(pId).update({ quantity: newQty }), 2000);
+          } catch (e) {}
+        }
+        const pTarget = localProducts.find(p => p.id === pId);
+        if (pTarget) {
+          pTarget.quantity = newQty;
+        }
+        totalDeducted += qty;
       }
     }
+    setLocalData('products', localProducts);
 
     const orderUpdates = { status: 'completed', completedAt: Date.now() };
     if (fbDb) {
@@ -1208,7 +1284,7 @@ body {
       setLocalData('orders', localOrders);
     }
 
-    return { success: true, orderId, productId, newQuantity, deducted: quantityToDeduct };
+    return { success: true, orderId, deducted: totalDeducted };
   }
 
   // =========================================================================
@@ -1426,7 +1502,7 @@ body {
         <div class="max-w-4xl mx-auto space-y-6 relative z-10">
           <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border-cyan-500/30 text-xs text-cyan-300 font-code shimmer-badge">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span>stores.privateee.online • مصنع المتاجر الذكي</span>
+            <span>AMG • منصة المتاجر الإلكترونية المتكاملة</span>
           </div>
 
           <h1 class="text-3xl sm:text-5xl md:text-6xl font-black text-white leading-tight">
@@ -1435,7 +1511,7 @@ body {
           </h1>
 
           <p class="text-gray-300 text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            المنصة المتكاملة لصناعة وإدارة المتاجر: أدخل كود التفعيل لتحديد مدة متجرك، ارفع صور منتجاتك بسرعة وجودة فائقة، واستقبل طلبات العملاء والشحن الفوري بدون الحاجة لتسجيل حساب للعميل.
+            المنصة المتكاملة لصناعة وإدارة المتاجر: أدخل كود التفعيل لتحديد مدة متجرك، ارفع صور منتجاتك بسرعة وجودة فائقة، واستقبل طلبات العملاء والشحن الفوري مع سلة تسوق ذكية.
           </p>
 
           <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -1455,18 +1531,13 @@ body {
               <span>${currentMerchant ? 'لوحة تحكم متجري' : 'تسجيل دخول التاجر'}</span>
             </a>
           </div>
-
-          <div class="pt-2 text-xs text-gray-400 flex items-center justify-center gap-2">
-            <i data-lucide="key" class="w-4 h-4 text-amber-400"></i>
-            <span>توليد وتحديد مدة الأكواد متاح من <a href="#admin" class="text-indigo-400 hover:underline font-bold">لوحة تحكم الإدارة</a></span>
-          </div>
         </div>
       </section>
 
       <section class="max-w-6xl mx-auto py-12 px-4">
         <div class="text-center mb-12">
-          <h2 class="text-2xl sm:text-3xl font-black text-white">مميزات مصنع المتاجر الفائقة</h2>
-          <p class="text-sm text-gray-400 mt-2">مصمم خصيصاً ليلبي كافة احتياجات إدارة المتاجر والشحن الفوري باحترافية</p>
+          <h2 class="text-2xl sm:text-3xl font-black text-white">مميزات منصة AMG الفائقة</h2>
+          <p class="text-sm text-gray-400 mt-2">مصممة خصيصاً لتلبي كافة احتياجات إدارة المتاجر والشحن الفوري باحترافية</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1539,13 +1610,9 @@ body {
             استخدم كود التفعيل الممنوح لك وابدأ بإضافة المنتجات وتعيين الأسعار واستقبال الطلبات فوراً.
           </p>
           <div class="pt-2 flex items-center justify-center gap-3">
-            <a href="#register" class="btn-trigger-register px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2">
-              <i data-lucide="plus-circle" class="w-4 h-4"></i>
-              <span>تفعيل متجر جديد</span>
-            </a>
-            <a href="#admin" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-xl text-xs font-bold transition flex items-center gap-2">
-              <i data-lucide="crown" class="w-4 h-4 text-amber-400"></i>
-              <span>لوحة الأدمن</span>
+            <a href="#register" class="btn-trigger-register px-8 py-3.5 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:opacity-95 text-white font-bold rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-cyan-600/20">
+              <i data-lucide="plus-circle" class="w-5 h-5"></i>
+              <span>تفعيل متجر جديد الآن</span>
             </a>
           </div>
         </div>
@@ -1600,7 +1667,7 @@ body {
           <div class="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 text-cyan-400 mb-3">
             <i data-lucide="sparkles" class="w-8 h-8"></i>
           </div>
-          <h2 class="text-2xl sm:text-3xl font-black text-white">مصنع المتاجر • تفعيل متجر جديد</h2>
+          <h2 class="text-2xl sm:text-3xl font-black text-white">AMG • تفعيل متجر جديد</h2>
           <p class="text-gray-400 text-sm mt-1">أدخل كود الاشتراك لتفعيل متجرك وتحديد مدة الصلاحية</p>
         </div>
 
@@ -1677,7 +1744,7 @@ body {
 
           <div class="p-3 bg-slate-950/80 rounded-xl border border-cyan-500/30 flex items-center justify-between text-xs font-code">
             <span class="text-gray-400">رابط المتجر المباشر للعملاء:</span>
-            <span id="preview-direct-link" class="text-cyan-400 font-bold truncate max-w-[280px]">stores.privateee.online/?store=...</span>
+            <span id="preview-direct-link" class="text-cyan-400 font-bold truncate max-w-[280px]">?store=...</span>
           </div>
 
           <div>
@@ -1703,17 +1770,29 @@ body {
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-gray-300 mb-2">رقم الواتساب للتواصل مع العملاء *</label>
+              <label class="block text-xs font-semibold text-gray-300 mb-2">رقم واتساب المتجر (اختياري)</label>
               <input 
                 type="tel" 
                 id="reg-store-whatsapp" 
                 placeholder="مثال: 01012345678" 
-                required
+                maxlength="11"
                 class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500"
               />
+              <span class="text-[10px] text-gray-500 mt-1 block">يبدأ بـ 010 أو 011 أو 012 أو 015 ومكون من 11 رقماً</span>
             </div>
 
             <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-2">حساب تلجرام المتجر (اختياري)</label>
+              <input 
+                type="text" 
+                id="reg-store-telegram" 
+                placeholder="مثال: @store_username أو رابط" 
+                class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500"
+              />
+              <span class="text-[10px] text-gray-500 mt-1 block">يوزرنيم حسابك أو قناتك على تلجرام</span>
+            </div>
+
+            <div class="sm:col-span-2">
               <label class="block text-xs font-semibold text-gray-300 mb-2">العملة الافتراضية للمنتجات</label>
               <select id="reg-store-currency" class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700 rounded-xl text-white focus:border-cyan-500">
                 <option value="ج.م">جنيه مصري (ج.م)</option>
@@ -1722,6 +1801,11 @@ body {
                 <option value="د.إ">درهم إماراتي (د.إ)</option>
                 <option value="د.ك">دينار كويتي (د.ك)</option>
               </select>
+            </div>
+
+            <div class="sm:col-span-2 p-3 bg-cyan-950/40 rounded-xl border border-cyan-500/20 text-xs text-cyan-300 flex items-center gap-2">
+              <i data-lucide="info" class="w-4 h-4 flex-shrink-0 text-cyan-400"></i>
+              <span>يلزم للتاجر إدخال رقم واتساب أو حساب تلجرام (واحدة على الأقل أو كلاهما) ليتمكن العملاء من مراسلتك بعد إتمام الطلب.</span>
             </div>
           </div>
 
@@ -1793,14 +1877,14 @@ body {
           .replace(/[\s_]+/g, '-')
           .replace(/[^a-z0-9-]/g, '') || 'my-store';
         slugInput.value = suggested;
-        previewLink.textContent = `stores.privateee.online/?store=${suggested}`;
+        previewLink.textContent = getStoreDirectUrl(suggested);
       }
     };
 
     slugInput.oninput = () => {
       slugInput.dataset.manual = 'true';
       const val = slugInput.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-      previewLink.textContent = `stores.privateee.online/?store=${val || '...'}`;
+      previewLink.textContent = getStoreDirectUrl(val || '...');
     };
 
     btnVerify.onclick = async () => {
@@ -1879,9 +1963,28 @@ body {
 
       const storeName = nameInput.value.trim();
       const slug = slugInput.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-      const whatsapp = document.getElementById('reg-store-whatsapp').value.trim();
+      const whatsapp = (document.getElementById('reg-store-whatsapp')?.value || '').trim();
+      const telegram = (document.getElementById('reg-store-telegram')?.value || '').trim();
       const currency = document.getElementById('reg-store-currency').value;
       const submitBtn = document.getElementById('btn-create-store-submit');
+
+      if (!whatsapp && !telegram) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'تنبيه',
+          text: 'يلزم إدخال وسيلة تواصل واحدة على الأقل (واتساب أو تلجرام) ليتمكن العملاء من مراسلتك.'
+        });
+        return;
+      }
+
+      if (whatsapp && !isValidEgyptianPhone(whatsapp)) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'رقم واتساب غير صحيح',
+          text: 'رقم الواتساب يجب أن يبدأ بـ 010 أو 011 أو 012 أو 015 ويكون مكوناً من 11 رقماً.'
+        });
+        return;
+      }
 
       submitBtn.disabled = true;
       submitBtn.innerHTML = `<span>جاري تفعيل متجرك...</span>`;
@@ -1908,6 +2011,7 @@ body {
           slug,
           logoUrl: uploadedLogoUrl || DEFAULT_STORE_LOGO,
           whatsapp,
+          telegram,
           currency,
           activationCode: validatedCode,
           durationDays
@@ -1915,7 +2019,7 @@ body {
 
         if (window.confetti) window.confetti({ particleCount: 100, spread: 90 });
 
-        const directUrl = `https://stores.privateee.online/?store=${newStore.slug}`;
+        const directUrl = getStoreDirectUrl(newStore.slug);
         await Swal.fire({
           icon: 'success',
           title: '🎉 ألف مبروك! تم تفعيل متجرك بنجاح',
@@ -2122,7 +2226,7 @@ body {
   // =========================================================================
   async function renderMerchantDashboard(container, store) {
     if (countdownInterval) clearInterval(countdownInterval);
-    const directStoreUrl = `https://stores.privateee.online/?store=${store.slug}`;
+    const directStoreUrl = getStoreDirectUrl(store.slug);
 
     container.innerHTML = `
       <div class="max-w-6xl mx-auto py-6 px-4 space-y-6">
@@ -2731,19 +2835,47 @@ body {
                   <span class="font-code font-bold text-white text-sm bg-slate-950 px-2 py-1 rounded border border-slate-700">${order.customerId}</span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-gray-400">رقم واتساب العميل:</span>
+                  <span class="text-gray-400">رقم هاتف العميل:</span>
                   <a href="${waLink}" target="_blank" class="font-code font-bold text-emerald-400 flex items-center gap-1">
-                    <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                    <i data-lucide="phone" class="w-3.5 h-3.5"></i>
                     <span>${order.customerWhatsapp}</span>
                   </a>
                 </div>
               </div>
 
-              <div class="text-xs text-gray-300">
-                <span class="font-bold text-white">${order.productTitle}</span>
-                <span>• عدد: <strong class="text-cyan-400 font-code">${order.orderQuantity}</strong></span>
-                <span>• إجمالي: <strong class="text-emerald-400 font-code">${order.totalPrice} ${store.currency || 'ج.م'}</strong></span>
+              <!-- Ordered Items List -->
+              <div class="p-3 bg-slate-900/70 rounded-xl border border-slate-800/80 space-y-1.5 text-xs">
+                <div class="font-bold text-gray-300 pb-1 border-b border-slate-800 flex items-center justify-between">
+                  <span>المنتجات المطلوبة:</span>
+                  <span class="text-gray-500 font-normal">عدد العناصر: ${(Array.isArray(order.items) && order.items.length) ? order.items.length : 1}</span>
+                </div>
+                ${(Array.isArray(order.items) && order.items.length > 0) ? order.items.map(it => `
+                  <div class="flex items-center justify-between py-1 text-gray-300 border-b border-slate-800/40 last:border-0">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span>
+                      <span class="font-bold text-white">${it.title}</span>
+                    </div>
+                    <div class="font-code text-cyan-300 font-bold">
+                      ${it.quantity} × ${it.price} = <span class="text-emerald-400">${(it.quantity * it.price)} ${store.currency || 'ج.م'}</span>
+                    </div>
+                  </div>
+                `).join('') : `
+                  <div class="flex items-center justify-between py-1 text-gray-300">
+                    <span class="font-bold text-white">${order.productTitle}</span>
+                    <span class="font-code text-cyan-300">${order.orderQuantity} × ${order.productPrice} = ${order.totalPrice} ${store.currency || 'ج.م'}</span>
+                  </div>
+                `}
+                <div class="flex items-center justify-between pt-2 border-t border-slate-800 font-bold">
+                  <span class="text-gray-200">الإجمالي الكلي:</span>
+                  <span class="text-emerald-400 font-code text-sm font-black">${order.totalPrice} ${store.currency || 'ج.م'}</span>
+                </div>
               </div>
+
+              ${order.notes ? `
+                <div class="text-xs bg-slate-950/60 p-2.5 rounded-lg border border-slate-800 text-gray-300">
+                  <strong class="text-amber-400">ملاحظات العميل:</strong> ${order.notes}
+                </div>
+              ` : ''}
             </div>
 
             <div>
@@ -2797,7 +2929,7 @@ body {
   // Store Settings Tab
   function renderSettingsTab(contentDiv, store) {
     let newLogoUrl = store.logoUrl;
-    const directStoreUrl = `https://stores.privateee.online/?store=${store.slug}`;
+    const directStoreUrl = getStoreDirectUrl(store.slug);
 
     contentDiv.innerHTML = `
       <div class="max-w-2xl mx-auto glass-panel p-6 sm:p-8 rounded-3xl space-y-6 text-right">
@@ -2816,9 +2948,20 @@ body {
             <label class="block text-xs font-semibold text-gray-300 mb-1">اسم المتجر</label>
             <input type="text" id="settings-store-name" value="${store.name}" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-cyan-500" />
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-300 mb-1">رقم الواتساب</label>
-            <input type="tel" id="settings-store-whatsapp" value="${store.whatsapp || ''}" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1">رقم الواتساب (اختياري)</label>
+              <input type="tel" id="settings-store-whatsapp" value="${store.whatsapp || ''}" placeholder="01012345678" maxlength="11" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500" />
+              <span class="text-[10px] text-gray-500 mt-1 block">11 رقم يبدأ بـ 010 أو 011 أو 012 أو 015</span>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1">حساب تلجرام (اختياري)</label>
+              <input type="text" id="settings-store-telegram" value="${store.telegram || ''}" placeholder="@username أو رابط" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500" />
+              <span class="text-[10px] text-gray-500 mt-1 block">يوزرنيم حسابك أو قناتك على تلجرام</span>
+            </div>
+          </div>
+          <div class="p-3 bg-cyan-950/40 rounded-xl border border-cyan-500/20 text-xs text-cyan-300">
+            💡 يلزم إدخال وسيلة تواصل واحدة على الأقل (واتساب أو تلجرام أو كلاهما) ليتمكن العملاء من مراسلتك بعد الطلب.
           </div>
           <div>
             <label class="block text-xs font-semibold text-gray-300 mb-1">وصف المتجر</label>
@@ -2838,13 +2981,33 @@ body {
 
     document.getElementById('store-settings-form').onsubmit = async (e) => {
       e.preventDefault();
-      const name = document.getElementById('settings-store-name').value;
-      const whatsapp = document.getElementById('settings-store-whatsapp').value;
-      const bio = document.getElementById('settings-store-bio').value;
+      const name = document.getElementById('settings-store-name').value.trim();
+      const whatsapp = (document.getElementById('settings-store-whatsapp')?.value || '').trim();
+      const telegram = (document.getElementById('settings-store-telegram')?.value || '').trim();
+      const bio = document.getElementById('settings-store-bio').value.trim();
 
-      await updateStoreSettings(store.id, { name, whatsapp, bio, logoUrl: newLogoUrl });
+      if (!whatsapp && !telegram) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'تنبيه',
+          text: 'يلزم إدخال وسيلة تواصل واحدة على الأقل (واتساب أو تلجرام أو كلاهما) ليتمكن العملاء من مراسلتك.'
+        });
+        return;
+      }
+
+      if (whatsapp && !isValidEgyptianPhone(whatsapp)) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'رقم واتساب غير صحيح',
+          text: 'رقم الواتساب يجب أن يبدأ بـ 010 أو 011 أو 012 أو 015 ويكون مكوناً من 11 رقماً.'
+        });
+        return;
+      }
+
+      await updateStoreSettings(store.id, { name, whatsapp, telegram, bio, logoUrl: newLogoUrl });
       store.name = name;
       store.whatsapp = whatsapp;
+      store.telegram = telegram;
       store.bio = bio;
       Swal.fire({ icon: 'success', title: 'تم التحديث بنجاح', timer: 1200, showConfirmButton: false });
     };
@@ -3153,24 +3316,119 @@ body {
       store.categories = ['عام'];
     }
 
+    // Shopping Cart State
+    let cart = [];
+
+    function getCartTotalCount() {
+      return cart.reduce((sum, item) => sum + item.quantity, 0);
+    }
+
+    function getCartTotalPrice() {
+      return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    }
+
+    function updateCartBar() {
+      const cartBar = document.getElementById('storefront-cart-bar');
+      const badgeCount = document.getElementById('cart-badge-count');
+      const itemsCount = document.getElementById('cart-bar-items-count');
+      const totalPrice = document.getElementById('cart-bar-total-price');
+
+      const totalCount = getCartTotalCount();
+      const totalAmount = getCartTotalPrice();
+
+      if (!cartBar) return;
+
+      if (totalCount > 0) {
+        cartBar.classList.remove('hidden');
+        if (badgeCount) badgeCount.textContent = totalCount;
+        if (itemsCount) itemsCount.textContent = `${totalCount} منتجات`;
+        if (totalPrice) totalPrice.textContent = `${totalAmount} ${store.currency || 'ج.م'}`;
+      } else {
+        cartBar.classList.add('hidden');
+      }
+    }
+
+    function addToCart(product, quantityToAdd = 1) {
+      const stock = parseInt(product.quantity, 10) || 0;
+      if (stock <= 0) {
+        Swal.fire({ icon: 'warning', title: 'نفذت الكمية', text: 'هذا المنتج غير متوفر في المخزون حالياً.' });
+        return false;
+      }
+
+      const existingIndex = cart.findIndex(item => item.productId === product.id);
+      const currentInCart = existingIndex >= 0 ? cart[existingIndex].quantity : 0;
+      const newTotal = currentInCart + quantityToAdd;
+
+      if (newTotal > stock) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'الكمية غير متاحة',
+          text: `الكمية المتاحة في المخزون هي ${stock} فقط (لديك بالفعل ${currentInCart} في السلة).`
+        });
+        return false;
+      }
+
+      if (existingIndex >= 0) {
+        cart[existingIndex].quantity = newTotal;
+      } else {
+        cart.push({
+          productId: product.id,
+          title: product.title,
+          price: parseFloat(product.price) || 0,
+          quantity: quantityToAdd,
+          maxStock: stock,
+          imageUrl: product.imageUrl || window.DEFAULT_PRODUCT_IMG,
+          category: product.category || 'عام'
+        });
+      }
+
+      updateCartBar();
+
+      // Show brief notification
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 1600,
+        timerProgressBar: true
+      });
+      Toast.fire({
+        icon: 'success',
+        title: `تمت إضافة (${product.title}) إلى السلة 🛒`
+      });
+
+      return true;
+    }
+
+    const headerWaLink = store.whatsapp ? formatEgyptianWaLink(store.whatsapp, `مرحباً، أود الاستفسار عن منتجات متجر ${store.name}`) : '';
+    const headerTgLink = store.telegram ? formatTelegramLink(store.telegram) : '';
+
     container.innerHTML = `
-      <div class="max-w-6xl mx-auto py-6 px-4 space-y-8">
+      <div class="max-w-6xl mx-auto py-6 px-4 space-y-8 pb-32">
         
         <!-- Store Header -->
         <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-cyan-500/20 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-right">
           <div class="flex flex-col sm:flex-row items-center gap-5">
-            <img src="${store.logoUrl || DEFAULT_STORE_LOGO}" class="w-20 h-20 rounded-2xl object-cover border-2 border-cyan-500/40 bg-slate-900 shadow-md" onerror="this.onerror=null; this.src=DEFAULT_STORE_LOGO;" />
+            <img src="${store.logoUrl || window.DEFAULT_STORE_LOGO}" class="w-20 h-20 rounded-2xl object-cover border-2 border-cyan-500/40 bg-slate-900 shadow-md" onerror="this.onerror=null; this.src=window.DEFAULT_STORE_LOGO;" />
             <div>
               <h1 class="text-2xl sm:text-3xl font-black text-white">${store.name}</h1>
               <p class="text-sm text-gray-300 mt-1 max-w-xl">${store.bio || 'أهلاً بكم في متجرنا! شحن فوري ومضمون.'}</p>
             </div>
           </div>
-          ${store.whatsapp ? `
-            <a href="https://wa.me/${store.whatsapp.replace(/[^0-9]/g, '')}" target="_blank" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-xs sm:text-sm shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
-              <i data-lucide="message-circle" class="w-4 h-4"></i>
-              <span>تواصل مع المتجر واتساب</span>
-            </a>
-          ` : ''}
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            ${headerWaLink ? `
+              <a href="${headerWaLink}" target="_blank" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>واتساب المتجر</span>
+              </a>
+            ` : ''}
+            ${headerTgLink ? `
+              <a href="${headerTgLink}" target="_blank" class="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg shadow-sky-600/20 transition flex items-center gap-2">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                <span>تليجرام المتجر</span>
+              </a>
+            ` : ''}
+          </div>
         </div>
 
         <!-- Category Filter Bar -->
@@ -3191,6 +3449,31 @@ body {
         <!-- Products Grid -->
         <div id="storefront-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <!-- Rendered below -->
+        </div>
+
+      </div>
+
+      <!-- Floating Bottom Cart Bar -->
+      <div id="storefront-cart-bar" class="fixed bottom-4 left-4 right-4 max-w-2xl mx-auto z-40 hidden transition-all duration-300">
+        <div class="glass-panel p-4 rounded-2xl border-2 border-cyan-500/50 shadow-2xl shadow-cyan-500/20 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-xl bg-slate-950/95">
+          <div class="flex items-center gap-3">
+            <div class="relative w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30">
+              <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+              <span id="cart-badge-count" class="absolute -top-1.5 -right-1.5 px-2 py-0.5 rounded-full text-[11px] font-black bg-rose-500 text-white border-2 border-slate-950">0</span>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-gray-400 font-bold">سلة المشتريات</div>
+              <div class="text-white font-black text-sm sm:text-base flex items-center gap-2">
+                <span id="cart-bar-items-count">0 منتجات</span>
+                <span class="text-slate-600">•</span>
+                <span id="cart-bar-total-price" class="text-cyan-400 font-code font-black">0 ${store.currency || 'ج.م'}</span>
+              </div>
+            </div>
+          </div>
+          <button id="btn-open-cart-checkout" class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:opacity-95 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+            <span>عرض السلة وإتمام الطلب</span>
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          </button>
         </div>
       </div>
     `;
@@ -3246,10 +3529,17 @@ body {
               ${isOutOfStock ? `
                 <button disabled class="w-full py-3.5 bg-slate-800 text-gray-500 font-bold rounded-xl text-sm cursor-not-allowed">نفذت الكمية</button>
               ` : `
-                <button data-prod-id="${prod.id}" class="btn-buy-product w-full py-3.5 bg-gradient-to-r from-cyan-500 via-teal-500 to-indigo-600 hover:opacity-95 text-white font-extrabold rounded-xl text-sm shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
-                  <i data-lucide="shopping-cart" class="w-4 h-4"></i>
-                  <span>شراء الآن</span>
-                </button>
+                <div class="flex items-center gap-2">
+                  <div class="flex items-center bg-slate-900/90 border border-slate-700 rounded-xl overflow-hidden px-1 py-0.5">
+                    <button type="button" class="btn-qty-minus px-2.5 py-2 text-gray-300 hover:text-white font-black text-sm" data-prod-id="${prod.id}">-</button>
+                    <input type="number" id="input-qty-${prod.id}" value="1" min="1" max="${prod.quantity}" class="w-10 text-center bg-transparent text-white font-code font-bold text-sm focus:outline-none" />
+                    <button type="button" class="btn-qty-plus px-2.5 py-2 text-gray-300 hover:text-white font-black text-sm" data-prod-id="${prod.id}">+</button>
+                  </div>
+                  <button data-prod-id="${prod.id}" class="btn-add-to-cart flex-1 py-3 bg-gradient-to-r from-cyan-500 via-teal-500 to-indigo-600 hover:opacity-95 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                    <span>أضف للسلة</span>
+                  </button>
+                </div>
               `}
             </div>
           </div>
@@ -3258,10 +3548,35 @@ body {
 
       if (window.lucide) window.lucide.createIcons();
 
-      grid.querySelectorAll('.btn-buy-product').forEach(btn => {
+      // Quantity Steppers
+      grid.querySelectorAll('.btn-qty-minus').forEach(btn => {
+        btn.onclick = () => {
+          const input = document.getElementById(`input-qty-${btn.dataset.prodId}`);
+          if (input) {
+            let val = parseInt(input.value, 10) || 1;
+            if (val > 1) input.value = val - 1;
+          }
+        };
+      });
+
+      grid.querySelectorAll('.btn-qty-plus').forEach(btn => {
+        btn.onclick = () => {
+          const input = document.getElementById(`input-qty-${btn.dataset.prodId}`);
+          const prod = products.find(p => p.id === btn.dataset.prodId);
+          if (input && prod) {
+            let val = parseInt(input.value, 10) || 1;
+            if (val < prod.quantity) input.value = val + 1;
+          }
+        };
+      });
+
+      // Add To Cart Button
+      grid.querySelectorAll('.btn-add-to-cart').forEach(btn => {
         btn.onclick = () => {
           const prod = products.find(p => p.id === btn.dataset.prodId);
-          if (prod) openBuyModal(store, prod);
+          const input = document.getElementById(`input-qty-${btn.dataset.prodId}`);
+          const qty = input ? (parseInt(input.value, 10) || 1) : 1;
+          if (prod) addToCart(prod, qty);
         };
       });
     }
@@ -3279,102 +3594,276 @@ body {
         renderStoreGrid();
       };
     });
+
+    // Cart Button Trigger
+    const btnOpenCart = document.getElementById('btn-open-cart-checkout');
+    if (btnOpenCart) {
+      btnOpenCart.onclick = () => openCartModal(store, cart, updateCartBar);
+    }
   }
 
-  function openBuyModal(store, product) {
-    const modalHtml = `
-      <div id="customer-buy-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
-        <div class="glass-panel w-full max-w-lg p-6 sm:p-8 rounded-3xl border border-cyan-500/30 text-right space-y-5 max-h-[90vh] overflow-y-auto">
+  function openCartModal(store, cart, onCartChange = () => {}) {
+    // Remove any existing cart modal
+    const oldModal = document.getElementById('customer-cart-modal');
+    if (oldModal) oldModal.remove();
+
+    function renderCartModalContent() {
+      const modalBox = document.getElementById('customer-cart-modal-box');
+      if (!modalBox) return;
+
+      const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+      if (cart.length === 0) {
+        modalBox.innerHTML = `
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 class="text-base font-bold text-white">إتمام طلب الشراء (${store.name})</h3>
-            <button id="btn-close-buy-modal" class="p-1 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="shopping-cart" class="w-5 h-5 text-cyan-400"></i>
+              <span>سلة المشتريات (${store.name})</span>
+            </h3>
+            <button id="btn-close-cart-modal" class="p-1 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+          </div>
+          <div class="py-12 text-center text-gray-400 space-y-3">
+            <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto text-gray-600"></i>
+            <p class="font-bold">سلة المشتريات فارغة حالياً</p>
+            <button id="btn-close-empty-cart" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold">تصفح المنتجات</button>
+          </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+        document.getElementById('btn-close-cart-modal')?.addEventListener('click', () => {
+          document.getElementById('customer-cart-modal')?.remove();
+        });
+        document.getElementById('btn-close-empty-cart')?.addEventListener('click', () => {
+          document.getElementById('customer-cart-modal')?.remove();
+        });
+        return;
+      }
+
+      modalBox.innerHTML = `
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shopping-cart" class="w-5 h-5 text-cyan-400"></i>
+            <h3 class="text-base font-bold text-white">سلة المشتريات وإتمام الطلب</h3>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-500/20 text-cyan-300 font-code">${totalCount} قطع</span>
+          </div>
+          <button id="btn-close-cart-modal" class="p-1 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <!-- Items List -->
+        <div class="space-y-3 max-h-56 overflow-y-auto pr-1">
+          ${cart.map((item, idx) => `
+            <div class="p-3 bg-slate-900/90 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 text-xs">
+              <div class="flex items-center gap-3 min-w-0">
+                <img src="${item.imageUrl || window.DEFAULT_PRODUCT_IMG}" class="w-12 h-12 rounded-xl object-cover border border-slate-700 bg-slate-950 flex-shrink-0" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
+                <div class="min-w-0">
+                  <div class="font-bold text-white truncate">${item.title}</div>
+                  <div class="text-[11px] text-gray-400 font-code mt-0.5">${item.price} ${store.currency || 'ج.م'} للقطعة</div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 flex-shrink-0">
+                <div class="flex items-center bg-slate-950 border border-slate-700 rounded-lg overflow-hidden">
+                  <button type="button" class="btn-cart-dec px-2 py-1 text-gray-300 hover:text-white font-bold" data-index="${idx}">-</button>
+                  <span class="w-7 text-center font-code font-bold text-white text-xs">${item.quantity}</span>
+                  <button type="button" class="btn-cart-inc px-2 py-1 text-gray-300 hover:text-white font-bold" data-index="${idx}">+</button>
+                </div>
+                <span class="font-code text-cyan-300 font-bold w-16 text-left">${item.price * item.quantity} ${store.currency || 'ج.م'}</span>
+                <button type="button" class="btn-cart-del p-1 text-rose-400 hover:text-rose-300" data-index="${idx}" title="حذف"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Total Price Summary -->
+        <div class="p-3.5 bg-slate-900 rounded-2xl border border-cyan-500/30 flex items-center justify-between text-xs sm:text-sm">
+          <span class="font-bold text-gray-200">الإجمالي النهائي للطلب:</span>
+          <span class="font-code font-black text-emerald-400 text-base">${totalAmount} ${store.currency || 'ج.م'}</span>
+        </div>
+
+        <!-- Checkout Form -->
+        <form id="customer-checkout-form" class="space-y-3.5 border-t border-slate-800 pt-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-200 mb-1">ID حسابك في اللعبة / الخدمة *</label>
+            <input type="text" id="checkout-customer-id" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left font-bold focus:border-cyan-500 text-sm" placeholder="مثال: 984521741 أو المعرف الخاص بك" />
           </div>
 
-          <div class="p-3 bg-slate-900 rounded-xl flex items-center justify-between text-xs">
-            <div>
-              <span class="font-bold text-white block">${product.title}</span>
-              <span class="text-[11px] text-gray-400 font-bold">${product.category || 'عام'}</span>
-            </div>
-            <span class="font-code text-cyan-400 font-bold text-sm">${product.price} ${store.currency || 'ج.م'}</span>
+          <div>
+            <label class="block text-xs font-bold text-gray-200 mb-1">رقم هاتف التواصل (واتساب) *</label>
+            <input type="tel" id="checkout-customer-phone" required maxlength="11" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left font-bold focus:border-cyan-500 text-sm" placeholder="مثال: 01012345678" />
+            <span class="text-[10px] text-gray-400 mt-1 block">رقم مصري يبدأ بـ 010 أو 011 أو 012 أو 015 ومكون من 11 رقماً</span>
           </div>
 
-          <form id="customer-checkout-form" class="space-y-4">
-            <div>
-              <label class="block text-xs font-bold text-gray-200 mb-1">ادخل ID حسابك * (آيدي اللعبة / المعرف / اسم الحساب)</label>
-              <input type="text" id="checkout-customer-id" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left font-bold focus:border-cyan-500" placeholder="مثال: 984521741" />
-            </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">ملاحظات إضافية (اختياري)</label>
+            <textarea id="checkout-customer-notes" rows="2" class="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs" placeholder="أي تفاصيل إضافية تريد إبلاغ التاجر بها..."></textarea>
+          </div>
 
-            <div>
-              <label class="block text-xs font-bold text-gray-200 mb-1">رقم تواصل واتساب *</label>
-              <input type="tel" id="checkout-customer-wa" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left font-bold focus:border-cyan-500" placeholder="مثال: 01012345678" />
-            </div>
+          <button type="submit" id="btn-submit-order" class="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:opacity-95 text-white font-black text-base rounded-2xl shadow-xl shadow-teal-500/20 transition flex items-center justify-center gap-2">
+            <span>تأكيد وإرسال الطلب (${totalAmount} ${store.currency || 'ج.م'})</span>
+            <i data-lucide="check-circle" class="w-5 h-5 text-amber-300"></i>
+          </button>
+        </form>
+      `;
 
-            <div>
-              <label class="block text-xs font-semibold text-gray-300 mb-1">ملاحظات إضافية (اختياري)</label>
-              <textarea id="checkout-customer-notes" rows="2" class="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs"></textarea>
-            </div>
+      if (window.lucide) window.lucide.createIcons();
 
-            <button type="submit" id="btn-submit-order" class="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:opacity-95 text-white font-black text-base rounded-2xl shadow-xl">
-              تأكيد الطلب (تم)
-            </button>
-          </form>
+      // Handlers
+      document.getElementById('btn-close-cart-modal').onclick = () => {
+        document.getElementById('customer-cart-modal').remove();
+      };
+
+      modalBox.querySelectorAll('.btn-cart-dec').forEach(btn => {
+        btn.onclick = () => {
+          const idx = parseInt(btn.dataset.index, 10);
+          if (cart[idx]) {
+            if (cart[idx].quantity > 1) {
+              cart[idx].quantity--;
+            } else {
+              cart.splice(idx, 1);
+            }
+            onCartChange();
+            renderCartModalContent();
+          }
+        };
+      });
+
+      modalBox.querySelectorAll('.btn-cart-inc').forEach(btn => {
+        btn.onclick = () => {
+          const idx = parseInt(btn.dataset.index, 10);
+          if (cart[idx]) {
+            if (cart[idx].quantity < cart[idx].maxStock) {
+              cart[idx].quantity++;
+              onCartChange();
+              renderCartModalContent();
+            } else {
+              Swal.fire({ icon: 'info', title: 'أقصى كمية', text: `الكمية المتوفرة بالمخزون هي ${cart[idx].maxStock} قطعة فقط.` });
+            }
+          }
+        };
+      });
+
+      modalBox.querySelectorAll('.btn-cart-del').forEach(btn => {
+        btn.onclick = () => {
+          const idx = parseInt(btn.dataset.index, 10);
+          if (cart[idx]) {
+            cart.splice(idx, 1);
+            onCartChange();
+            renderCartModalContent();
+          }
+        };
+      });
+
+      // Checkout form submit
+      const form = document.getElementById('customer-checkout-form');
+      if (form) {
+        form.onsubmit = async (e) => {
+          e.preventDefault();
+          const customerId = document.getElementById('checkout-customer-id').value.trim();
+          const customerPhone = document.getElementById('checkout-customer-phone').value.trim();
+          const notes = document.getElementById('checkout-customer-notes').value.trim();
+
+          if (!customerId) {
+            Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'يرجى كتابة ID حسابك' });
+            return;
+          }
+
+          if (!isValidEgyptianPhone(customerPhone)) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'رقم هاتف غير صحيح',
+              text: 'رقم الهاتف يجب أن يبدأ بـ 010 أو 011 أو 012 أو 015 ويكون مكوناً من 11 رقماً.'
+            });
+            return;
+          }
+
+          const submitBtn = document.getElementById('btn-submit-order');
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = `<span>جاري إرسال الطلب...</span>`;
+
+          try {
+            const order = await createOrder({
+              storeId: store.id,
+              items: [...cart],
+              customerId,
+              customerWhatsapp: customerPhone,
+              notes
+            });
+
+            // Empty cart
+            cart.length = 0;
+            onCartChange();
+
+            // Close modal
+            document.getElementById('customer-cart-modal').remove();
+
+            if (window.confetti) window.confetti({ particleCount: 90, spread: 80 });
+
+            // Compose direct message text
+            let itemsText = order.items.map(it => `• ${it.title} (العدد: ${it.quantity}) - ${(it.quantity * it.price)} ${store.currency || 'ج.م'}`).join('\n');
+            let fullMsg = `مرحباً إدارة متجر ${store.name} 👋\nأريد تأكيد وتنفيذ طلبي:\n📋 رقم الطلب: #${order.id}\n👤 آيدي الحساب: ${customerId}\n📱 هاتف العميل: ${customerPhone}\n📦 المنتجات المطلوبة:\n${itemsText}\n💰 الإجمالي: ${order.totalPrice} ${store.currency || 'ج.م'}`;
+            if (notes) fullMsg += `\n📝 ملاحظات: ${notes}`;
+
+            const waDirectLink = store.whatsapp ? formatEgyptianWaLink(store.whatsapp, fullMsg) : '';
+            const tgDirectLink = store.telegram ? formatTelegramLink(store.telegram, fullMsg) : '';
+
+            Swal.fire({
+              icon: 'success',
+              title: '🎉 تم إرسال طلبك بنجاح!',
+              html: `
+                <div class="text-right text-sm space-y-4 mt-2">
+                  <div class="p-3 bg-slate-900 rounded-xl border border-emerald-500/30 text-xs">
+                    <div class="text-gray-400">رقم الطلب الخاص بك:</div>
+                    <div class="text-cyan-400 font-code font-bold text-sm mt-0.5">#${order.id}</div>
+                  </div>
+
+                  <div class="p-4 bg-slate-900/90 rounded-2xl border border-cyan-500/30 text-xs space-y-2">
+                    <div class="font-bold text-white text-sm">أرسل لنا رسالة لتأكيد وتنفيذ طلبك:</div>
+                    <p class="text-gray-300 leading-relaxed">
+                      يرجى الضغط على الزر أدناه لإرسال تفاصيل طلبك مباشرة للتاجر للبدء الفوري في التسليم:
+                    </p>
+                  </div>
+
+                  <div class="space-y-2.5 pt-1">
+                    ${waDirectLink ? `
+                      <a href="${waDirectLink}" target="_blank" class="block w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs sm:text-sm text-center shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+                        <i data-lucide="message-circle" class="w-5 h-5"></i>
+                        <span>إرسال تفاصيل الطلب عبر واتساب 💬</span>
+                      </a>
+                    ` : ''}
+
+                    ${tgDirectLink ? `
+                      <a href="${tgDirectLink}" target="_blank" class="block w-full py-3.5 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-xs sm:text-sm text-center shadow-lg shadow-sky-600/30 transition flex items-center justify-center gap-2">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                        <span>إرسال تفاصيل الطلب عبر تليجرام ✈️</span>
+                      </a>
+                    ` : ''}
+                  </div>
+                </div>
+              `,
+              showConfirmButton: true,
+              confirmButtonText: 'إغلاق ومتابعة التسوق'
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+
+          } catch (err) {
+            Swal.fire({ icon: 'error', title: 'خطأ', text: err.message });
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>تأكيد وإرسال الطلب</span>`;
+          }
+        };
+      }
+    }
+
+    const modalHtml = `
+      <div id="customer-cart-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+        <div id="customer-cart-modal-box" class="glass-panel w-full max-w-lg p-6 sm:p-8 rounded-3xl border border-cyan-500/30 text-right space-y-4 max-h-[90vh] overflow-y-auto">
         </div>
       </div>
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    if (window.lucide) window.lucide.createIcons();
-
-    const modalEl = document.getElementById('customer-buy-modal');
-    document.getElementById('btn-close-buy-modal').onclick = () => modalEl.remove();
-
-    document.getElementById('customer-checkout-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const customerId = document.getElementById('checkout-customer-id').value.trim();
-      const customerWhatsapp = document.getElementById('checkout-customer-wa').value.trim();
-      const notes = document.getElementById('checkout-customer-notes').value.trim();
-
-      const submitBtn = document.getElementById('btn-submit-order');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `<span>جاري الإرسال...</span>`;
-
-      try {
-        const order = await createOrder({
-          storeId: store.id,
-          productId: product.id,
-          productTitle: product.title,
-          productPrice: product.price,
-          orderQuantity: 1,
-          customerId,
-          customerWhatsapp,
-          notes
-        });
-
-        modalEl.remove();
-        if (window.confetti) window.confetti({ particleCount: 80 });
-
-        const cleanWa = (store.whatsapp || '').replace(/[^0-9]/g, '');
-        const waDirectChat = cleanWa 
-          ? `https://wa.me/${cleanWa}?text=${encodeURIComponent(`مرحباً إدارة متجر ${store.name}، طلبت منتج (${product.title}) رقم الطلب: #${order.id}، الـ ID: ${customerId}`)}`
-          : null;
-
-        Swal.fire({
-          icon: 'success',
-          title: '🎉 تم إرسال طلبك بنجاح!',
-          html: `
-            <div class="text-right text-sm space-y-2 mt-2">
-              <p>وصل طلبك مباشرة إلى لوحة تحكم التاجر.</p>
-              <div class="p-2 bg-slate-900 rounded font-code text-xs text-cyan-400">رقم الطلب: #${order.id}</div>
-              ${waDirectChat ? `<a href="${waDirectChat}" target="_blank" class="block w-full py-2.5 mt-2 bg-emerald-600 text-white rounded font-bold text-xs text-center">تأكيد الطلب مع التاجر على واتساب</a>` : ''}
-            </div>
-          `
-        });
-      } catch (err) {
-        Swal.fire({ icon: 'error', title: 'خطأ', text: err.message });
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>تأكيد الطلب (تم)</span>`;
-      }
-    };
+    renderCartModalContent();
   }
 
   // =========================================================================
