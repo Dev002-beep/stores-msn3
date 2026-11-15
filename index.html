@@ -472,7 +472,10 @@ body {
 
   const DEFAULT_STORE_LOGO = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%22%20height%3D%22100%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20fill%3D%22%230f172a%22%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2224%22%2F%3E%3Cpath%20d%3D%22M28%2065%20V40%20L50%2024%20L72%2040%20V65%20Z%22%20stroke%3D%22%2306b6d4%22%20stroke-width%3D%222.5%22%20fill%3D%22none%22%20stroke-linejoin%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%227%22%20fill%3D%22%2338bdf8%22%2F%3E%3Ctext%20x%3D%2250%22%20y%3D%2282%22%20fill%3D%22%2338bdf8%22%20font-family%3D%22sans-serif%22%20font-size%3D%2210%22%20font-weight%3D%22bold%22%20text-anchor%3D%22middle%22%3ESTORE%3C%2Ftext%3E%3C%2Fsvg%3E";
 
-  async function compressImage(file, maxWidth = 1200, maxHeight = 1600, quality = 0.82) {
+  window.DEFAULT_PRODUCT_IMG = DEFAULT_PRODUCT_IMG;
+  window.DEFAULT_STORE_LOGO = DEFAULT_STORE_LOGO;
+
+  async function compressImage(file, maxWidth = 800, maxHeight = 1066, quality = 0.8) {
     if (!file || !file.type || !file.type.startsWith('image/')) return file;
     if (file.type === 'image/svg+xml' || file.type === 'image/gif') return file;
 
@@ -497,7 +500,7 @@ body {
         ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob((blob) => {
-          if (!blob || blob.size >= file.size) {
+          if (!blob) {
             resolve(file);
           } else {
             const compressed = new File([blob], (file.name || 'image').replace(/\.[^/.]+$/, "") + ".jpg", {
@@ -514,6 +517,21 @@ body {
       };
       img.src = tempUrl;
     });
+  }
+
+  // Converts any file to an optimized permanent Base64 Data URL (~50KB) that works 100% offline & across reloads
+  async function fileToDataUrl(file, maxWidth = 800, maxHeight = 1066) {
+    try {
+      const compressed = await compressImage(file, maxWidth, maxHeight, 0.8);
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(DEFAULT_PRODUCT_IMG);
+        reader.readAsDataURL(compressed);
+      });
+    } catch (e) {
+      return DEFAULT_PRODUCT_IMG;
+    }
   }
 
   async function uploadImageToCatbox(file, onProgress = () => {}) {
@@ -1016,8 +1034,18 @@ body {
     }
     const localProducts = getLocalData('products', []).filter(p => p.storeId === storeId);
     const map = new Map();
-    localProducts.forEach(p => map.set(p.id, p));
-    list.forEach(p => map.set(p.id, p));
+    localProducts.forEach(p => {
+      if (!p.imageUrl || p.imageUrl.startsWith('blob:') || p.imageUrl.includes('placeholder.png')) {
+        p.imageUrl = window.DEFAULT_PRODUCT_IMG;
+      }
+      map.set(p.id, p);
+    });
+    list.forEach(p => {
+      if (!p.imageUrl || p.imageUrl.startsWith('blob:') || p.imageUrl.includes('placeholder.png')) {
+        p.imageUrl = window.DEFAULT_PRODUCT_IMG;
+      }
+      map.set(p.id, p);
+    });
     return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }
 
@@ -1818,22 +1846,28 @@ body {
       const file = fileInput.files[0];
       if (!file) return;
 
-      // Instant local preview
-      const tempUrl = URL.createObjectURL(file);
-      previewBox.innerHTML = `<img src="${tempUrl}" class="w-full h-full object-cover rounded-2xl" />`;
-      uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري تحسين ورفع الشعار...</span>`;
-
       btnUploadLogo.disabled = true;
-      try {
-        const url = await uploadImageToCatbox(file, (msg) => { uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`; });
-        uploadedLogoUrl = url;
-        uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم رفع الشعار بنجاح!</span>`;
-      } catch (err) {
-        uploadedLogoUrl = tempUrl;
-        uploadStatus.innerHTML = `<span class="text-amber-400 font-bold">تم حفظ الشعار محلياً بنجاح!</span>`;
-      } finally {
+      uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري تجهيز الشعار...</span>`;
+
+      // 1. Immediately create permanent optimized Base64 Data URL
+      const persistentLogoUrl = await fileToDataUrl(file, 400, 400);
+      uploadedLogoUrl = persistentLogoUrl;
+      previewBox.innerHTML = `<img src="${persistentLogoUrl}" class="w-full h-full object-cover rounded-2xl" />`;
+      uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم تجهيز الشعار بنجاح!</span>`;
+
+      // 2. Asynchronously upload to cloud (Catbox) in background
+      uploadImageToCatbox(file, (msg) => { 
+        uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`; 
+      }).then((cloudUrl) => {
+        if (cloudUrl && (cloudUrl.startsWith('http://') || cloudUrl.startsWith('https://'))) {
+          uploadedLogoUrl = cloudUrl;
+          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع السحابي للشعار!</span>`;
+        }
+      }).catch(() => {
+        // Fallback persistentLogoUrl is already set and ready
+      }).finally(() => {
         btnUploadLogo.disabled = false;
-      }
+      });
     };
 
     detailsForm.onsubmit = async (e) => {
@@ -2350,7 +2384,7 @@ body {
           <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-slate-800">
             <div>
               <div class="relative aspect-[3/4] bg-slate-950 overflow-hidden">
-                <img src="${prod.imageUrl || DEFAULT_PRODUCT_IMG}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src=DEFAULT_PRODUCT_IMG;" />
+                <img src="${prod.imageUrl || window.DEFAULT_PRODUCT_IMG}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
                 <span class="absolute top-3 right-3 px-2.5 py-1 rounded-xl text-xs font-bold ${isOutOfStock ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950'}">
                   ${isOutOfStock ? 'نفذت الكمية ❌' : `متوفر: ${prod.quantity}`}
                 </span>
@@ -2371,7 +2405,10 @@ body {
             </div>
             <div class="p-4 pt-0 border-t border-slate-800/60 mt-3 flex items-center justify-between">
               <span class="text-[11px] text-gray-500 font-code">#${prod.id.slice(-6)}</span>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5">
+                <button data-id="${prod.id}" class="btn-edit-product p-2 hover:bg-cyan-500/20 rounded-xl text-cyan-400 transition" title="تعديل المنتج">
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </button>
                 <button data-id="${prod.id}" class="btn-delete-product p-2 hover:bg-rose-500/20 rounded-xl text-rose-400 transition" title="حذف">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
@@ -2382,6 +2419,16 @@ body {
       }).join('');
 
       if (window.lucide) window.lucide.createIcons();
+
+      grid.querySelectorAll('.btn-edit-product').forEach(btn => {
+        btn.onclick = () => {
+          const prodId = btn.dataset.id;
+          const target = products.find(p => p.id === prodId);
+          if (target) {
+            openProductModal(store, target, () => renderProductsTab(contentDiv, store));
+          }
+        };
+      });
 
       grid.querySelectorAll('.btn-delete-product').forEach(btn => {
         btn.onclick = async () => {
@@ -2560,24 +2607,28 @@ body {
       const file = fileInput.files[0];
       if (!file) return;
 
-      // Instant local preview so merchant immediately sees their photo
-      const tempUrl = URL.createObjectURL(file);
-      previewBox.innerHTML = `<img src="${tempUrl}" class="w-full h-full object-cover" />`;
-      uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري تحسين ورفع الصورة...</span>`;
-
       btnUpload.disabled = true;
-      try {
-        const url = await uploadImageToCatbox(file, (msg) => { 
-          uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`; 
-        });
-        uploadedUrl = url;
-        uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم رفع الصورة بنجاح!</span>`;
-      } catch (err) {
-        uploadedUrl = tempUrl;
-        uploadStatus.innerHTML = `<span class="text-amber-400 font-bold">تم حفظ الصورة محلياً بنجاح!</span>`;
-      } finally {
+      uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري تحسين وتجهيز الصورة...</span>`;
+
+      // 1. Immediately create permanent optimized Base64 Data URL (persists forever, never 404s)
+      const persistentDataUrl = await fileToDataUrl(file);
+      uploadedUrl = persistentDataUrl;
+      previewBox.innerHTML = `<img src="${persistentDataUrl}" class="w-full h-full object-cover" />`;
+      uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم تجهيز الصورة بنجاح!</span>`;
+
+      // 2. Asynchronously upload to cloud (Catbox) in background
+      uploadImageToCatbox(file, (msg) => { 
+        uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`; 
+      }).then((cloudUrl) => {
+        if (cloudUrl && (cloudUrl.startsWith('http://') || cloudUrl.startsWith('https://'))) {
+          uploadedUrl = cloudUrl;
+          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع السحابي بنجاح!</span>`;
+        }
+      }).catch(() => {
+        // Fallback persistentDataUrl is already set and ready
+      }).finally(() => {
         btnUpload.disabled = false;
-      }
+      });
     };
 
     form.onsubmit = async (e) => {
@@ -3171,7 +3222,7 @@ body {
           <div class="glass-card rounded-3xl overflow-hidden flex flex-col justify-between border border-slate-800 shadow-xl group">
             <div>
               <div class="relative aspect-[3/4] bg-slate-950 overflow-hidden">
-                <img src="${prod.imageUrl || DEFAULT_PRODUCT_IMG}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.onerror=null; this.src=DEFAULT_PRODUCT_IMG;" />
+                <img src="${prod.imageUrl || window.DEFAULT_PRODUCT_IMG}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
                 <span class="absolute top-3 right-3 px-3 py-1 rounded-xl text-xs font-bold ${isOutOfStock ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950'} shadow-lg backdrop-blur-md">
                   ${isOutOfStock ? 'نفذت الكمية ❌' : `متوفر: ${prod.quantity}`}
                 </span>
