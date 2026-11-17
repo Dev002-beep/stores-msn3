@@ -1379,6 +1379,70 @@ body {
   }
 
   // =========================================================================
+  // 5.4 Trades & Exchanges Module (قسم التبديل والمقايضة)
+  // =========================================================================
+  async function getStoreTrades(storeId) {
+    let list = [];
+    if (fbDb) {
+      try {
+        const snap = await withTimeout(fbDb.collection('trades').where('storeId', '==', storeId).get(), 3000);
+        snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      } catch (e) {}
+    }
+    const localTrades = getLocalData('trades', []).filter(t => t.storeId === storeId);
+    const map = new Map();
+    localTrades.forEach(t => map.set(t.id, t));
+    list.forEach(t => map.set(t.id, t));
+    return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }
+
+  async function createTrade(tradeData) {
+    const id = tradeData.id || `trade_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`;
+    const fullData = {
+      ...tradeData,
+      id,
+      status: tradeData.status || 'available',
+      requiredItems: Array.isArray(tradeData.requiredItems) ? tradeData.requiredItems.filter(r => r && r.trim()) : [],
+      createdAt: tradeData.createdAt || Date.now()
+    };
+    if (fbDb) {
+      try {
+        await withTimeout(fbDb.collection('trades').doc(id).set(fullData), 3000);
+      } catch (e) {}
+    }
+    const localTrades = getLocalData('trades', []);
+    localTrades.unshift(fullData);
+    setLocalData('trades', localTrades);
+    return fullData;
+  }
+
+  async function updateTrade(tradeId, updates) {
+    if (fbDb) {
+      try {
+        await withTimeout(fbDb.collection('trades').doc(tradeId).update(updates), 3000);
+      } catch (e) {}
+    }
+    const localTrades = getLocalData('trades', []);
+    const idx = localTrades.findIndex(t => t.id === tradeId);
+    if (idx !== -1) {
+      localTrades[idx] = { ...localTrades[idx], ...updates };
+      setLocalData('trades', localTrades);
+    }
+    return true;
+  }
+
+  async function deleteTrade(tradeId) {
+    if (fbDb) {
+      try {
+        await withTimeout(fbDb.collection('trades').doc(tradeId).delete(), 2500);
+      } catch (e) {}
+    }
+    const localTrades = getLocalData('trades', []).filter(t => t.id !== tradeId);
+    setLocalData('trades', localTrades);
+    return true;
+  }
+
+  // =========================================================================
   // 5.5 Preset Images Wallet Module (Shared Library for Merchants & Super Admin)
   // =========================================================================
   const PRESET_IMAGES_STORAGE_KEY = 'msn3_preset_images';
@@ -2530,17 +2594,21 @@ body {
           </div>
         </div>
 
-        <div class="flex border-b border-slate-800 gap-6 text-sm font-bold">
-          <button id="merchant-tab-products" class="pb-3 text-cyan-400 border-b-2 border-cyan-500 flex items-center gap-2">
+        <div class="flex border-b border-slate-800 gap-6 text-sm font-bold overflow-x-auto scrollbar-none">
+          <button id="merchant-tab-products" class="pb-3 text-cyan-400 border-b-2 border-cyan-500 flex items-center gap-2 whitespace-nowrap">
             <i data-lucide="package" class="w-4 h-4"></i>
             <span>المنتجات والمخزون</span>
           </button>
-          <button id="merchant-tab-orders" class="pb-3 text-gray-400 hover:text-white flex items-center gap-2 relative">
+          <button id="merchant-tab-trades" class="pb-3 text-gray-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
+            <i data-lucide="repeat" class="w-4 h-4"></i>
+            <span>عروض التبديل (المقايضة) 🔄</span>
+          </button>
+          <button id="merchant-tab-orders" class="pb-3 text-gray-400 hover:text-white flex items-center gap-2 relative whitespace-nowrap">
             <i data-lucide="shopping-bag" class="w-4 h-4"></i>
             <span>الطلبات والصفقات</span>
             <span id="pending-orders-badge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950">0</span>
           </button>
-          <button id="merchant-tab-settings" class="pb-3 text-gray-400 hover:text-white flex items-center gap-2">
+          <button id="merchant-tab-settings" class="pb-3 text-gray-400 hover:text-white flex items-center gap-2 whitespace-nowrap">
             <i data-lucide="settings" class="w-4 h-4"></i>
             <span>إعدادات المتجر</span>
           </button>
@@ -2582,11 +2650,12 @@ body {
 
     const contentArea = document.getElementById('merchant-dashboard-content');
     const tabProd = document.getElementById('merchant-tab-products');
+    const tabTrades = document.getElementById('merchant-tab-trades');
     const tabOrders = document.getElementById('merchant-tab-orders');
     const tabSettings = document.getElementById('merchant-tab-settings');
 
     function setActive(activeBtn) {
-      [tabProd, tabOrders, tabSettings].forEach(b => {
+      [tabProd, tabTrades, tabOrders, tabSettings].forEach(b => {
         b.classList.remove('text-cyan-400', 'border-b-2', 'border-cyan-500');
         b.classList.add('text-gray-400');
       });
@@ -2595,6 +2664,7 @@ body {
     }
 
     tabProd.onclick = () => { setActive(tabProd); renderProductsTab(contentArea, store); };
+    tabTrades.onclick = () => { setActive(tabTrades); renderTradesTab(contentArea, store); };
     tabOrders.onclick = () => { setActive(tabOrders); renderOrdersTab(contentArea, store); };
     tabSettings.onclick = () => { setActive(tabSettings); renderSettingsTab(contentArea, store); };
 
@@ -3199,6 +3269,543 @@ body {
         saveBtn.innerHTML = `<span>حفظ المنتج</span>`;
       }
     };
+  }
+
+  // =========================================================================
+  // 7.5 Merchant Trades & Exchange Management (قسم التبديل والمقايضة)
+  // =========================================================================
+  async function renderTradesTab(contentDiv, store) {
+    contentDiv.innerHTML = `
+      <div class="space-y-6">
+        <div class="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+            <div>
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <i data-lucide="repeat" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h2 class="text-base sm:text-lg font-black text-white">قسم عروض التبديل (المقايضة) 🔄</h2>
+                  <p class="text-xs text-gray-400">اعرض منتجاتك المتاحة للبدل وحدد ما تطلبه من المشتري في المقابل</p>
+                </div>
+              </div>
+            </div>
+            <button id="btn-open-add-trade" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-lg shadow-amber-500/20 transition flex items-center gap-2">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>إضافة عرض تبديل جديد</span>
+            </button>
+          </div>
+
+          <!-- Trades List Grid -->
+          <div id="merchant-trades-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pt-2">
+            <div class="col-span-full py-12 text-center text-gray-500">جاري تحميل عروض التبديل...</div>
+          </div>
+        </div>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+
+    const tradesGrid = document.getElementById('merchant-trades-grid');
+    const trades = await getStoreTrades(store.id);
+
+    if (!trades.length) {
+      tradesGrid.innerHTML = `
+        <div class="col-span-full py-14 text-center glass-panel rounded-2xl border border-dashed border-slate-800">
+          <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-amber-400/50">
+            <i data-lucide="repeat" class="w-7 h-7"></i>
+          </div>
+          <p class="text-gray-300 font-bold text-sm">لا توجد عروض تبديل حالياً</p>
+          <p class="text-gray-500 text-xs mt-1">اضغط على زر "إضافة عرض تبديل جديد" لعرض أول قطعة للبدل</p>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+    } else {
+      tradesGrid.innerHTML = trades.map(trade => {
+        const isAvail = trade.status === 'available';
+        const reqList = Array.isArray(trade.requiredItems) ? trade.requiredItems : [];
+        return `
+          <div class="glass-card rounded-2xl overflow-hidden border border-slate-800 flex flex-col justify-between group hover:border-slate-700 transition" data-id="${trade.id}">
+            <div>
+              <div class="aspect-square bg-slate-950 relative overflow-hidden">
+                <img src="${trade.offeredImage || window.DEFAULT_PRODUCT_IMG}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
+                <span class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-xl text-[10px] font-black shadow-lg ${isAvail ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-gray-400 border border-slate-700'}">
+                  ${isAvail ? '🔄 متاح للتبديل' : '✓ تم التبديل'}
+                </span>
+              </div>
+              <div class="p-4 space-y-3">
+                <div>
+                  <span class="text-[10px] font-bold text-amber-400 block mb-0.5">المعروض للتبديل:</span>
+                  <h3 class="text-sm font-extrabold text-white truncate">${trade.offeredTitle}</h3>
+                  ${trade.offeredDescription ? `<p class="text-xs text-gray-400 line-clamp-2 mt-1">${trade.offeredDescription}</p>` : ''}
+                </div>
+                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-1.5">
+                  <span class="text-[11px] font-bold text-cyan-400 flex items-center gap-1">
+                    <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                    <span>المطلوب في المقابل (${reqList.length}):</span>
+                  </span>
+                  <ul class="space-y-1">
+                    ${reqList.map((req, i) => `
+                      <li class="text-xs text-gray-200 flex items-start gap-1.5 font-medium">
+                        <span class="text-amber-400 font-bold">${i + 1}.</span>
+                        <span class="break-words">${req}</span>
+                      </li>
+                    `).join('')}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 pt-0 border-t border-slate-800/80 flex items-center justify-between gap-2 mt-2">
+              <button class="btn-toggle-trade-status px-3 py-1.5 rounded-lg text-xs font-bold transition ${isAvail ? 'bg-slate-800 text-gray-300 hover:text-white' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}" data-id="${trade.id}" data-status="${isAvail ? 'completed' : 'available'}">
+                ${isAvail ? 'تحديد كـ تم التبديل' : 'إعادة للمتاح 🔄'}
+              </button>
+              <div class="flex items-center gap-1.5">
+                <button class="btn-edit-trade p-2 hover:bg-slate-800 text-gray-400 hover:text-white rounded-lg transition" title="تعديل" data-id="${trade.id}">
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </button>
+                <button class="btn-del-trade p-2 hover:bg-rose-500/20 text-gray-400 hover:text-rose-400 rounded-lg transition" title="حذف" data-id="${trade.id}">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) window.lucide.createIcons();
+
+      tradesGrid.querySelectorAll('.btn-toggle-trade-status').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const status = btn.dataset.status;
+          await updateTrade(id, { status });
+          renderTradesTab(contentDiv, store);
+        };
+      });
+
+      tradesGrid.querySelectorAll('.btn-edit-trade').forEach(btn => {
+        btn.onclick = () => {
+          const target = trades.find(t => t.id === btn.dataset.id);
+          if (target) {
+            openTradeModal(store, target, () => renderTradesTab(contentDiv, store));
+          }
+        };
+      });
+
+      tradesGrid.querySelectorAll('.btn-del-trade').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const confirm = await Swal.fire({
+            title: 'حذف عرض التبديل؟',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، حذف',
+            cancelButtonText: 'إلغاء',
+            background: '#0f172a',
+            color: '#fff'
+          });
+          if (confirm.isConfirmed) {
+            await deleteTrade(id);
+            renderTradesTab(contentDiv, store);
+          }
+        };
+      });
+    }
+
+    document.getElementById('btn-open-add-trade').onclick = () => {
+      openTradeModal(store, null, () => renderTradesTab(contentDiv, store));
+    };
+  }
+
+  // Add / Edit Trade Modal
+  function openTradeModal(store, existingTrade = null, onSuccess = () => {}) {
+    let uploadedUrl = existingTrade ? (existingTrade.offeredImage || '') : '';
+    let requirements = existingTrade && Array.isArray(existingTrade.requiredItems) && existingTrade.requiredItems.length > 0
+      ? [...existingTrade.requiredItems]
+      : [''];
+
+    const modalHtml = `
+      <div id="trade-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+        <div class="glass-panel w-full max-w-xl p-6 sm:p-8 rounded-3xl border border-amber-500/40 text-right space-y-5 max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                <i data-lucide="repeat" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-extrabold text-white">${existingTrade ? 'تعديل عرض التبديل' : 'إضافة عرض تبديل جديد'}</h3>
+                <p class="text-xs text-gray-400">حدد المعروض وما تطلبه في المقابل (يمكنك طلب أكثر من شيء)</p>
+              </div>
+            </div>
+            <button id="btn-close-trade-modal" class="p-1 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+          </div>
+
+          <form id="trade-modal-form" class="space-y-4">
+            
+            <!-- Section 1: المعروض للتبديل -->
+            <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-3">
+              <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                <i data-lucide="package" class="w-4 h-4"></i>
+                <span>1. الشيء المتاح للتبديل (المعروض)</span>
+              </h4>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-300 mb-1">اسم / عنوان القطعة المعروضة للبدل *</label>
+                <input type="text" id="trade-offered-title" required value="${existingTrade ? existingTrade.offeredTitle : ''}" placeholder="مثال: حساب ببجي لفل 70 ميثك فاشن أو بطاقة 50$" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-bold focus:border-amber-500" />
+              </div>
+
+              <!-- Image Picker -->
+              <div>
+                <label class="block text-xs font-semibold text-gray-300 mb-1">صورة المعروض للبدل</label>
+                <div class="flex items-center gap-3">
+                  <div id="trade-preview-box" class="w-16 h-16 rounded-xl aspect-square bg-slate-950 border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    ${uploadedUrl 
+                      ? `<img src="${uploadedUrl}" class="w-full h-full object-cover aspect-square" />` 
+                      : `<i data-lucide="image" class="w-6 h-6 text-gray-600"></i>`}
+                  </div>
+                  <div class="flex-1 space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <input type="file" id="trade-file-input" accept="image/*" class="hidden" />
+                      <button type="button" id="btn-upload-trade-file" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-600">
+                        <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>رفع صورة</span>
+                      </button>
+                      <button type="button" id="btn-open-trade-presets" class="px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-amber-500/30">
+                        <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
+                        <span>المحفظة ✨</span>
+                      </button>
+                    </div>
+                    <div id="trade-upload-status" class="text-[11px] text-gray-400">يمكنك رفع صورة أو اختيار صورة جاهزة من المحفظة</div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-300 mb-1">تفاصيل / مواصفات المعروض (اختياري)</label>
+                <textarea id="trade-offered-desc" rows="2" placeholder="اكتب تفاصيل إضافية عن القطعة المعروضة..." class="w-full px-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:border-amber-500">${existingTrade ? (existingTrade.offeredDescription || '') : ''}</textarea>
+              </div>
+            </div>
+
+            <!-- Section 2: المطلوب في المقابل -->
+            <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                  <i data-lucide="target" class="w-4 h-4"></i>
+                  <span>2. المطلوب في المقابل (شروط التبديل)</span>
+                </h4>
+                <button type="button" id="btn-add-requirement-row" class="px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                  <i data-lucide="plus" class="w-3 h-3"></i>
+                  <span>إضافة متطلب آخر (+)</span>
+                </button>
+              </div>
+              <p class="text-[11px] text-gray-400">حدد ما تطلبه من المشتري مقابل هذه القطعة، ويمكنك إضافة عدة متطلبات (مثلاً: حساب + بطاقة مقابل قطعة واحدة):</p>
+
+              <div id="trade-requirements-container" class="space-y-2">
+                <!-- Dynamic rows injected here -->
+              </div>
+            </div>
+
+            <button type="submit" id="btn-save-trade" class="w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:opacity-95 text-slate-950 font-black text-sm rounded-xl shadow-xl transition flex items-center justify-center gap-2">
+              <i data-lucide="check-circle" class="w-4 h-4"></i>
+              <span>${existingTrade ? 'حفظ تعديلات العرض' : 'نشر عرض التبديل الآن'}</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    if (window.lucide) window.lucide.createIcons();
+
+    const modalEl = document.getElementById('trade-modal');
+    document.getElementById('btn-close-trade-modal').onclick = () => modalEl.remove();
+
+    const reqContainer = document.getElementById('trade-requirements-container');
+    const btnAddReq = document.getElementById('btn-add-requirement-row');
+
+    function renderRequirementRows() {
+      reqContainer.innerHTML = requirements.map((req, index) => `
+        <div class="flex items-center gap-2 requirement-row" data-index="${index}">
+          <span class="w-6 h-6 rounded-lg bg-slate-800 text-amber-400 font-bold text-xs flex items-center justify-center flex-shrink-0">${index + 1}</span>
+          <input type="text" class="trade-req-input flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-semibold focus:border-cyan-500" placeholder="مثال: حساب ستيم لفل 20 أو شدات ببجي" value="${req.replace(/"/g, '&quot;')}" required />
+          <button type="button" class="btn-remove-req p-2 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition ${requirements.length <= 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="حذف هذا المتطلب" data-index="${index}">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+      if (window.lucide) window.lucide.createIcons();
+
+      reqContainer.querySelectorAll('.trade-req-input').forEach((inp, idx) => {
+        inp.oninput = (e) => {
+          requirements[idx] = e.target.value;
+        };
+      });
+
+      reqContainer.querySelectorAll('.btn-remove-req').forEach(btn => {
+        btn.onclick = () => {
+          if (requirements.length <= 1) return;
+          const idx = parseInt(btn.dataset.index, 10);
+          requirements.splice(idx, 1);
+          renderRequirementRows();
+        };
+      });
+    }
+
+    renderRequirementRows();
+
+    btnAddReq.onclick = () => {
+      requirements.push('');
+      renderRequirementRows();
+      const inputs = reqContainer.querySelectorAll('.trade-req-input');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    };
+
+    // Preset Wallet Integration for Trade Offer Image
+    const btnPresets = document.getElementById('btn-open-trade-presets');
+    const previewBox = document.getElementById('trade-preview-box');
+    const uploadStatus = document.getElementById('trade-upload-status');
+
+    btnPresets.onclick = () => {
+      openPresetImagePickerModal((preset) => {
+        uploadedUrl = preset.imageUrl;
+        previewBox.innerHTML = `<img src="${preset.imageUrl}" class="w-full h-full object-cover aspect-square" />`;
+        uploadStatus.innerHTML = `<span class="text-amber-400 font-bold">تم اختيار صورة (${preset.title}) من المحفظة! ✨</span>`;
+      });
+    };
+
+    // File upload for Trade Offer Image
+    const fileInput = document.getElementById('trade-file-input');
+    const btnUpload = document.getElementById('btn-upload-trade-file');
+    btnUpload.onclick = () => fileInput.click();
+
+    fileInput.onchange = async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const saveBtn = document.getElementById('btn-save-trade');
+      btnUpload.disabled = true;
+      if (saveBtn) saveBtn.disabled = true;
+
+      uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري رفع ومعالجة الصورة سحابياً...</span>`;
+      const tempPreview = URL.createObjectURL(file);
+      previewBox.innerHTML = `<img src="${tempPreview}" class="w-full h-full object-cover aspect-square" />`;
+
+      try {
+        const cloudUrl = await uploadImageToCatbox(file, (msg) => {
+          uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`;
+        });
+        if (cloudUrl) {
+          uploadedUrl = cloudUrl;
+          previewBox.innerHTML = `<img src="${cloudUrl}" class="w-full h-full object-cover aspect-square" />`;
+          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع السحابي بنجاح! ✓</span>`;
+        }
+      } catch (err) {
+        const fallbackData = await fileToDataUrl(file);
+        uploadedUrl = fallbackData;
+        previewBox.innerHTML = `<img src="${fallbackData}" class="w-full h-full object-cover aspect-square" />`;
+        uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم حفظ الصورة بنجاح!</span>`;
+      } finally {
+        btnUpload.disabled = false;
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    };
+
+    // Submit Trade Offer
+    const form = document.getElementById('trade-modal-form');
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const offeredTitle = document.getElementById('trade-offered-title').value.trim();
+      const offeredDescription = document.getElementById('trade-offered-desc').value.trim();
+      const cleanReqs = requirements.map(r => r.trim()).filter(r => r.length > 0);
+
+      if (!offeredTitle) {
+        Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'يرجى كتابة اسم المعروض للبدل' });
+        return;
+      }
+      if (!cleanReqs.length) {
+        Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'يرجى كتابة متطلب واحد على الأقل في المطلوب في المقابل' });
+        return;
+      }
+
+      const saveBtn = document.getElementById('btn-save-trade');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<span>جاري الحفظ...</span>`;
+
+      try {
+        if (existingTrade) {
+          await updateTrade(existingTrade.id, {
+            offeredTitle,
+            offeredDescription,
+            offeredImage: uploadedUrl || window.DEFAULT_PRODUCT_IMG,
+            requiredItems: cleanReqs
+          });
+        } else {
+          await createTrade({
+            storeId: store.id,
+            offeredTitle,
+            offeredDescription,
+            offeredImage: uploadedUrl || window.DEFAULT_PRODUCT_IMG,
+            requiredItems: cleanReqs,
+            status: 'available'
+          });
+        }
+
+        modalEl.remove();
+        Swal.fire({
+          icon: 'success',
+          title: existingTrade ? 'تم تحديث عرض التبديل!' : 'تم نشر عرض التبديل بنجاح!',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        onSuccess();
+      } catch (err) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<span>حفظ عرض التبديل</span>`;
+        Swal.fire({ icon: 'error', title: 'خطأ', text: err.message || 'حدث خطأ أثناء الحفظ' });
+      }
+    };
+  }
+
+  // Customer Trade Offer Modal: Displays Offered item and Required items side-by-side!
+  function openCustomerTradeModal(store, trade) {
+    const oldModal = document.getElementById('customer-trade-modal');
+    if (oldModal) oldModal.remove();
+
+    const isAvail = trade.status === 'available';
+    const reqList = Array.isArray(trade.requiredItems) ? trade.requiredItems : [];
+
+    const tradeMsg = `مرحباً، أود إتمام عرض التبديل في متجركم (${store.name}):\n\n` +
+      `📦 المعروض للتبديل: ${trade.offeredTitle}\n` +
+      `🎯 المطلوب في المقابل:\n` +
+      reqList.map((r, i) => `${i + 1}. ${r}`).join('\n') +
+      `\n\nهل العرض ما زال متاحاً؟`;
+
+    const waLink = store.whatsapp ? formatEgyptianWaLink(store.whatsapp, tradeMsg) : '';
+    const tgLink = store.telegram ? formatTelegramLink(store.telegram) : '';
+
+    const modalHtml = `
+      <div id="customer-trade-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+        <div class="glass-panel w-full max-w-3xl p-6 sm:p-8 rounded-3xl border border-amber-500/40 text-right space-y-6 max-h-[92vh] overflow-y-auto shadow-2xl">
+          
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <i data-lucide="repeat" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-lg font-black text-white">تفاصيل عرض التبديل والمقايضة</h3>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-black ${isAvail ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-gray-400'}">
+                    ${isAvail ? '🔄 متاح للتبديل' : '✓ تم التبديل'}
+                  </span>
+                </div>
+                <p class="text-xs text-gray-400 mt-0.5">اقرأ شروط ومتطلبات التبديل وتواصل مع التاجر فوراً</p>
+              </div>
+            </div>
+            <button id="btn-close-customer-trade" class="p-1.5 text-gray-400 hover:text-white rounded-xl hover:bg-slate-800 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+          </div>
+
+          <!-- Side-by-Side: المتاح جمب المطلوب مباشرة -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+            
+            <!-- Side 1: الشيء المتاح للتبديل (المعروض) -->
+            <div class="p-5 rounded-2xl bg-slate-900/90 border border-amber-500/30 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="px-3 py-1 rounded-xl text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+                    <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                    <span>المعروض للتبديل (من التاجر)</span>
+                  </span>
+                </div>
+
+                <div class="aspect-square w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                  <img src="${trade.offeredImage || window.DEFAULT_PRODUCT_IMG}" class="w-full h-full object-cover aspect-square" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
+                </div>
+
+                <div>
+                  <h4 class="text-base font-extrabold text-white">${trade.offeredTitle}</h4>
+                  ${trade.offeredDescription ? `<p class="text-xs text-gray-300 mt-1.5 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">${trade.offeredDescription}</p>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <!-- Side 2: المطلوب في المقابل (جمبها مباشرة) -->
+            <div class="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-cyan-500/30 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="px-3 py-1 rounded-xl text-xs font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5">
+                    <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                    <span>المطلوب في المقابل (من المشتري)</span>
+                  </span>
+                  <span class="text-xs font-bold text-gray-400">${reqList.length} متطلبات</span>
+                </div>
+
+                <div class="p-3 bg-cyan-950/20 rounded-xl border border-cyan-500/20">
+                  <p class="text-xs text-cyan-200/90 font-bold leading-relaxed">
+                    💡 لإتمام صفقة التبديل والحصول على هذا المعروض، يشترط التاجر توفير الآتي:
+                  </p>
+                </div>
+
+                <ul class="space-y-2.5">
+                  ${reqList.map((req, idx) => `
+                    <li class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-start gap-3">
+                      <span class="w-6 h-6 rounded-lg bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 font-black text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                        ${idx + 1}
+                      </span>
+                      <div class="flex-1">
+                        <span class="text-xs sm:text-sm font-bold text-white leading-snug break-words">${req}</span>
+                      </div>
+                      <i data-lucide="check" class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-1"></i>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+
+              <div class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center text-xs text-gray-400">
+                ✨ إذا كانت المتطلبات متوفرة لديك، اضغط بالأسفل للتواصل مع التاجر فوراً
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Action buttons for the Customer -->
+          <div class="pt-2 border-t border-slate-800/80">
+            ${isAvail ? `
+              <div class="flex flex-col sm:flex-row items-center justify-end gap-3">
+                ${waLink ? `
+                  <a href="${waLink}" target="_blank" class="w-full sm:w-auto px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <span>طلب التبديل عبر واتساب 💬</span>
+                  </a>
+                ` : ''}
+                ${tgLink ? `
+                  <a href="${tgLink}" target="_blank" class="w-full sm:w-auto px-6 py-3.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-sky-600/30 transition flex items-center justify-center gap-2">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    <span>طلب التبديل عبر تليجرام ✈️</span>
+                  </a>
+                ` : ''}
+                ${(!waLink && !tgLink) ? `
+                  <div class="w-full text-center text-xs text-gray-400 font-bold py-2">
+                    لم يقم التاجر بتسجيل رقم واتساب أو رابط تليجرام بعد.
+                  </div>
+                ` : ''}
+              </div>
+            ` : `
+              <div class="text-center py-2 text-xs font-bold text-gray-400 bg-slate-900 rounded-xl">
+                هذا العرض مكتمل وتم تبديله مسبقاً.
+              </div>
+            `}
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    if (window.lucide) window.lucide.createIcons();
+
+    const modalEl = document.getElementById('customer-trade-modal');
+    document.getElementById('btn-close-customer-trade').onclick = () => modalEl.remove();
   }
 
   // Orders Tab (Deal Completion & Stock Decrement)
@@ -3955,7 +4562,9 @@ body {
     }
 
     const products = await getStoreProducts(store.id);
+    const trades = await getStoreTrades(store.id);
     let selectedCategory = 'all';
+    let currentStorefrontTab = 'products';
 
     if (!store.categories || !store.categories.length) {
       store.categories = ['عام'];
@@ -4076,24 +4685,58 @@ body {
           </div>
         </div>
 
-        <!-- Category Filter Bar -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none" id="storefront-category-pills">
-          <button class="storefront-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 text-white shadow-md shadow-cyan-600/20 whitespace-nowrap transition" data-cat="all">
-            🌟 جميع الأقسام (${products.length})
+        <!-- Store Navigation Tabs (المنتجات للبيع vs قسم التبديل والمقايضة) -->
+        <div class="flex items-center gap-3 border-b border-slate-800/80 pb-3" id="storefront-main-tabs">
+          <button id="storefront-tab-prods" class="px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg shadow-cyan-600/20">
+            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+            <span>قائمة المنتجات (${products.length})</span>
           </button>
-          ${store.categories.map(c => {
-            const catCount = products.filter(p => (p.category || 'عام') === c).length;
-            return `
-              <button class="storefront-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900/90 text-gray-300 hover:text-white border border-slate-800 whitespace-nowrap transition" data-cat="${c}">
-                ${c} (${catCount})
-              </button>
-            `;
-          }).join('')}
+          <button id="storefront-tab-trades" class="px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-slate-900 border border-slate-800 text-amber-400 hover:text-amber-300 hover:border-amber-500/40">
+            <i data-lucide="repeat" class="w-4 h-4"></i>
+            <span>قسم التبديل والمقايضة (${trades.length})</span>
+            ${trades.length > 0 ? `<span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30">متاح</span>` : ''}
+          </button>
         </div>
 
-        <!-- Products Grid -->
-        <div id="storefront-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- Rendered below -->
+        <!-- Products Section -->
+        <div id="storefront-products-section" class="space-y-6">
+          <!-- Category Filter Bar -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none" id="storefront-category-pills">
+            <button class="storefront-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 text-white shadow-md shadow-cyan-600/20 whitespace-nowrap transition" data-cat="all">
+              🌟 جميع الأقسام (${products.length})
+            </button>
+            ${store.categories.map(c => {
+              const catCount = products.filter(p => (p.category || 'عام') === c).length;
+              return `
+                <button class="storefront-cat-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900/90 text-gray-300 hover:text-white border border-slate-800 whitespace-nowrap transition" data-cat="${c}">
+                  ${c} (${catCount})
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Products Grid -->
+          <div id="storefront-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Rendered below -->
+          </div>
+        </div>
+
+        <!-- Trades / Exchange Section -->
+        <div id="storefront-trades-section" class="hidden space-y-6">
+          <div class="p-4 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent rounded-2xl border border-amber-500/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+              <i data-lucide="repeat" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">قسم عروض التبديل (المقايضة) 🔄</h3>
+              <p class="text-xs text-gray-300">اختر أي قطعة من المعروضات لمعاينة ما يطلبه التاجر في المقابل وإتمام التبديل معه فوراً!</p>
+            </div>
+          </div>
+
+          <!-- Trades Grid -->
+          <div id="storefront-trades-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Rendered below -->
+          </div>
         </div>
 
       </div>
@@ -4239,6 +4882,103 @@ body {
         renderStoreGrid();
       };
     });
+
+    // Section Switcher: Products vs Trades
+    const prodsSection = document.getElementById('storefront-products-section');
+    const tradesSection = document.getElementById('storefront-trades-section');
+    const tabProdsBtn = document.getElementById('storefront-tab-prods');
+    const tabTradesBtn = document.getElementById('storefront-tab-trades');
+
+    function switchStorefrontTab(targetTab) {
+      currentStorefrontTab = targetTab;
+      if (targetTab === 'products') {
+        prodsSection.classList.remove('hidden');
+        tradesSection.classList.add('hidden');
+        tabProdsBtn.className = 'px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg shadow-cyan-600/20';
+        tabTradesBtn.className = 'px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-slate-900 border border-slate-800 text-amber-400 hover:text-amber-300 hover:border-amber-500/40';
+        updateCartBar();
+      } else {
+        prodsSection.classList.add('hidden');
+        tradesSection.classList.remove('hidden');
+        tabTradesBtn.className = 'px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-lg shadow-amber-500/20';
+        tabProdsBtn.className = 'px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-slate-900 border border-slate-800 text-gray-400 hover:text-white';
+        const cartBar = document.getElementById('storefront-cart-bar');
+        if (cartBar) cartBar.classList.add('hidden');
+        renderStoreTradesGrid();
+      }
+    }
+
+    if (tabProdsBtn) tabProdsBtn.onclick = () => switchStorefrontTab('products');
+    if (tabTradesBtn) tabTradesBtn.onclick = () => switchStorefrontTab('trades');
+
+    function renderStoreTradesGrid() {
+      const tradesGrid = document.getElementById('storefront-trades-grid');
+      if (!tradesGrid) return;
+
+      if (!trades.length) {
+        tradesGrid.innerHTML = `
+          <div class="col-span-full py-16 text-center text-gray-500 glass-panel rounded-3xl">
+            <i data-lucide="repeat" class="w-12 h-12 mx-auto mb-3 opacity-30 text-amber-400"></i>
+            <p class="text-base font-bold text-gray-300">لا توجد عروض تبديل معروضة حالياً في هذا المتجر</p>
+            <p class="text-xs text-gray-500 mt-1">تابع المتجر للتعرف على أحدث عروض البدل فور توفرها</p>
+          </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+        return;
+      }
+
+      tradesGrid.innerHTML = trades.map(trade => {
+        const isAvail = trade.status === 'available';
+        const reqList = Array.isArray(trade.requiredItems) ? trade.requiredItems : [];
+        return `
+          <div class="storefront-trade-card glass-card rounded-3xl overflow-hidden border border-slate-800 hover:border-amber-500/40 transition duration-300 flex flex-col justify-between group cursor-pointer shadow-xl" data-id="${trade.id}">
+            <div>
+              <div class="aspect-square bg-slate-950 overflow-hidden relative">
+                <img src="${trade.offeredImage || window.DEFAULT_PRODUCT_IMG}" class="w-full h-full object-cover aspect-square group-hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
+                <span class="absolute top-3 right-3 px-3 py-1 rounded-xl text-xs font-black shadow-lg ${isAvail ? 'bg-amber-500 text-slate-950 shadow-amber-500/30' : 'bg-slate-800 text-gray-400'}">
+                  ${isAvail ? '🔄 متاح للتبديل' : '✓ تم التبديل'}
+                </span>
+                <span class="absolute bottom-3 left-3 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-slate-950/80 text-cyan-300 border border-cyan-500/30 backdrop-blur-md">
+                  ${reqList.length} متطلبات في المقابل
+                </span>
+              </div>
+              <div class="p-5 space-y-3 text-right">
+                <div>
+                  <span class="text-[10px] font-bold text-amber-400">المعروض:</span>
+                  <h3 class="text-base font-extrabold text-white group-hover:text-amber-400 transition truncate">${trade.offeredTitle}</h3>
+                  ${trade.offeredDescription ? `<p class="text-xs text-gray-300 line-clamp-2 mt-1">${trade.offeredDescription}</p>` : ''}
+                </div>
+
+                <div class="p-3 bg-slate-900/90 rounded-2xl border border-slate-800/80 space-y-1">
+                  <div class="text-[11px] font-bold text-cyan-400 flex items-center gap-1">
+                    <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                    <span>المطلوب في المقابل:</span>
+                  </div>
+                  <div class="text-xs text-gray-200 line-clamp-2 font-medium">
+                    ${reqList.map((r, i) => `${i + 1}. ${r}`).join(' • ')}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-5 pt-0">
+              <button class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+                <span>معاينة المطلوب والتفاصيل 🔍</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) window.lucide.createIcons();
+
+      tradesGrid.querySelectorAll('.storefront-trade-card').forEach(card => {
+        card.onclick = () => {
+          const target = trades.find(t => t.id === card.dataset.id);
+          if (target) openCustomerTradeModal(store, target);
+        };
+      });
+    }
 
     // Cart Button Trigger
     const btnOpenCart = document.getElementById('btn-open-cart-checkout');
