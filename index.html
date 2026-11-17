@@ -1402,7 +1402,11 @@ body {
       ...tradeData,
       id,
       status: tradeData.status || 'available',
-      requiredItems: Array.isArray(tradeData.requiredItems) ? tradeData.requiredItems.filter(r => r && r.trim()) : [],
+      requiredItems: Array.isArray(tradeData.requiredItems)
+        ? tradeData.requiredItems
+            .map(r => typeof r === 'string' ? { text: r.trim(), image: '' } : { text: (r.text || '').trim(), image: (r.image || '').trim() })
+            .filter(r => r.text.length > 0)
+        : [],
       createdAt: tradeData.createdAt || Date.now()
     };
     if (fbDb) {
@@ -3338,18 +3342,24 @@ body {
                   <h3 class="text-sm font-extrabold text-white truncate">${trade.offeredTitle}</h3>
                   ${trade.offeredDescription ? `<p class="text-xs text-gray-400 line-clamp-2 mt-1">${trade.offeredDescription}</p>` : ''}
                 </div>
-                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-1.5">
+                <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2">
                   <span class="text-[11px] font-bold text-cyan-400 flex items-center gap-1">
                     <i data-lucide="target" class="w-3.5 h-3.5"></i>
                     <span>المطلوب في المقابل (${reqList.length}):</span>
                   </span>
-                  <ul class="space-y-1">
-                    ${reqList.map((req, i) => `
-                      <li class="text-xs text-gray-200 flex items-start gap-1.5 font-medium">
-                        <span class="text-amber-400 font-bold">${i + 1}.</span>
-                        <span class="break-words">${req}</span>
-                      </li>
-                    `).join('')}
+                  <ul class="space-y-1.5">
+                    ${reqList.map((req, i) => {
+                      const text = typeof req === 'string' ? req : (req.text || '');
+                      const img = typeof req === 'object' && req.image ? req.image : '';
+                      return `
+                        <li class="text-xs text-gray-200 flex items-center gap-2 font-medium bg-slate-950/60 p-1.5 rounded-xl border border-slate-800/80">
+                          ${img 
+                            ? `<img src="${img}" class="w-8 h-8 rounded-lg object-cover aspect-square flex-shrink-0 border border-slate-700" onerror="this.remove()" />` 
+                            : `<span class="w-5 h-5 rounded-md bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 text-[10px] font-bold flex items-center justify-center flex-shrink-0">${i + 1}</span>`}
+                          <span class="break-words flex-1">${text}</span>
+                        </li>
+                      `;
+                    }).join('')}
                   </ul>
                 </div>
               </div>
@@ -3420,8 +3430,8 @@ body {
   function openTradeModal(store, existingTrade = null, onSuccess = () => {}) {
     let uploadedUrl = existingTrade ? (existingTrade.offeredImage || '') : '';
     let requirements = existingTrade && Array.isArray(existingTrade.requiredItems) && existingTrade.requiredItems.length > 0
-      ? [...existingTrade.requiredItems]
-      : [''];
+      ? existingTrade.requiredItems.map(it => typeof it === 'string' ? { text: it, image: '' } : { text: it.text || '', image: it.image || '' })
+      : [{ text: '', image: '' }];
 
     const modalHtml = `
       <div id="trade-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
@@ -3433,7 +3443,7 @@ body {
               </div>
               <div>
                 <h3 class="text-base font-extrabold text-white">${existingTrade ? 'تعديل عرض التبديل' : 'إضافة عرض تبديل جديد'}</h3>
-                <p class="text-xs text-gray-400">حدد المعروض وما تطلبه في المقابل (يمكنك طلب أكثر من شيء)</p>
+                <p class="text-xs text-gray-400">حدد المعروض وما تطلبه في المقابل (يمكنك إضافة صورة لكل متطلب)</p>
               </div>
             </div>
             <button id="btn-close-trade-modal" class="p-1 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
@@ -3497,9 +3507,9 @@ body {
                   <span>إضافة متطلب آخر (+)</span>
                 </button>
               </div>
-              <p class="text-[11px] text-gray-400">حدد ما تطلبه من المشتري مقابل هذه القطعة، ويمكنك إضافة عدة متطلبات (مثلاً: حساب + بطاقة مقابل قطعة واحدة):</p>
+              <p class="text-[11px] text-gray-400">حدد ما تطلبه من المشتري، ويمكنك رفع صورة للمطلوب أو اختيارها من المحفظة:</p>
 
-              <div id="trade-requirements-container" class="space-y-2">
+              <div id="trade-requirements-container" class="space-y-3">
                 <!-- Dynamic rows injected here -->
               </div>
             </div>
@@ -3523,20 +3533,55 @@ body {
     const btnAddReq = document.getElementById('btn-add-requirement-row');
 
     function renderRequirementRows() {
-      reqContainer.innerHTML = requirements.map((req, index) => `
-        <div class="flex items-center gap-2 requirement-row" data-index="${index}">
-          <span class="w-6 h-6 rounded-lg bg-slate-800 text-amber-400 font-bold text-xs flex items-center justify-center flex-shrink-0">${index + 1}</span>
-          <input type="text" class="trade-req-input flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-semibold focus:border-cyan-500" placeholder="مثال: حساب ستيم لفل 20 أو شدات ببجي" value="${req.replace(/"/g, '&quot;')}" required />
-          <button type="button" class="btn-remove-req p-2 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition ${requirements.length <= 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="حذف هذا المتطلب" data-index="${index}">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
-        </div>
-      `).join('');
+      reqContainer.innerHTML = requirements.map((req, index) => {
+        const textVal = typeof req === 'string' ? req : (req.text || '');
+        const imgVal = typeof req === 'object' && req.image ? req.image : '';
+        return `
+          <div class="p-3 bg-slate-950/90 rounded-2xl border border-slate-800 space-y-2.5 requirement-row" data-index="${index}">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-lg bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 font-black text-xs flex items-center justify-center flex-shrink-0">${index + 1}</span>
+              <input type="text" class="trade-req-text flex-1 px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-semibold focus:border-cyan-500" placeholder="اكتب اسم المطلوب هنا (مثال: حساب ستيم لفل 20)" value="${textVal.replace(/"/g, '&quot;')}" required />
+              <button type="button" class="btn-remove-req p-2 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition ${requirements.length <= 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="حذف هذا المتطلب" data-index="${index}">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <!-- Image row for requirement -->
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-900">
+              <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-xl aspect-square bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0 req-img-preview" data-index="${index}">
+                  ${imgVal ? `<img src="${imgVal}" class="w-full h-full object-cover aspect-square" />` : `<i data-lucide="image" class="w-4 h-4 text-gray-600"></i>`}
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <input type="file" class="req-file-input hidden" accept="image/*" data-index="${index}" />
+                  <button type="button" class="btn-req-upload px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-gray-200 rounded-xl text-[11px] font-bold border border-slate-700 flex items-center gap-1 transition" data-index="${index}">
+                    <i data-lucide="upload-cloud" class="w-3 h-3 text-cyan-400"></i>
+                    <span>رفع صورة</span>
+                  </button>
+                  <button type="button" class="btn-req-wallet px-2.5 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 rounded-xl text-[11px] font-bold border border-cyan-500/30 flex items-center gap-1 transition" data-index="${index}">
+                    <i data-lucide="wallet" class="w-3 h-3"></i>
+                    <span>المحفظة ✨</span>
+                  </button>
+                  ${imgVal ? `
+                    <button type="button" class="btn-req-clear-img p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف صورة هذا المطلوب" data-index="${index}">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+              <span class="text-[10px] text-gray-500 hidden sm:inline">
+                ${imgVal ? '<span class="text-emerald-400 font-bold">✓ صورة مضافة</span>' : 'صورة المطلوب (اختياري)'}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
       if (window.lucide) window.lucide.createIcons();
 
-      reqContainer.querySelectorAll('.trade-req-input').forEach((inp, idx) => {
+      reqContainer.querySelectorAll('.trade-req-text').forEach((inp, idx) => {
         inp.oninput = (e) => {
-          requirements[idx] = e.target.value;
+          if (typeof requirements[idx] === 'string') requirements[idx] = { text: e.target.value, image: '' };
+          else requirements[idx].text = e.target.value;
         };
       });
 
@@ -3548,14 +3593,67 @@ body {
           renderRequirementRows();
         };
       });
+
+      reqContainer.querySelectorAll('.btn-req-upload').forEach(btn => {
+        btn.onclick = () => {
+          const idx = parseInt(btn.dataset.index, 10);
+          const input = reqContainer.querySelector(`.req-file-input[data-index="${idx}"]`);
+          if (input) input.click();
+        };
+      });
+
+      reqContainer.querySelectorAll('.req-file-input').forEach(input => {
+        input.onchange = async () => {
+          const idx = parseInt(input.dataset.index, 10);
+          const file = input.files[0];
+          if (!file) return;
+
+          const previewEl = reqContainer.querySelector(`.req-img-preview[data-index="${idx}"]`);
+          if (previewEl) {
+            previewEl.innerHTML = `<span class="animate-spin text-cyan-400 text-xs">⏳</span>`;
+          }
+
+          try {
+            const cloudUrl = await uploadImageToCatbox(file);
+            const finalImg = cloudUrl || await fileToDataUrl(file);
+            if (typeof requirements[idx] === 'string') requirements[idx] = { text: requirements[idx], image: finalImg };
+            else requirements[idx].image = finalImg;
+          } catch (err) {
+            const fallbackData = await fileToDataUrl(file);
+            if (typeof requirements[idx] === 'string') requirements[idx] = { text: requirements[idx], image: fallbackData };
+            else requirements[idx].image = fallbackData;
+          }
+          renderRequirementRows();
+        };
+      });
+
+      reqContainer.querySelectorAll('.btn-req-wallet').forEach(btn => {
+        btn.onclick = () => {
+          const idx = parseInt(btn.dataset.index, 10);
+          openPresetImagePickerModal((preset) => {
+            if (typeof requirements[idx] === 'string') requirements[idx] = { text: requirements[idx], image: preset.imageUrl };
+            else requirements[idx].image = preset.imageUrl;
+            renderRequirementRows();
+          });
+        };
+      });
+
+      reqContainer.querySelectorAll('.btn-req-clear-img').forEach(btn => {
+        btn.onclick = () => {
+          const idx = parseInt(btn.dataset.index, 10);
+          if (typeof requirements[idx] === 'string') requirements[idx] = { text: requirements[idx], image: '' };
+          else requirements[idx].image = '';
+          renderRequirementRows();
+        };
+      });
     }
 
     renderRequirementRows();
 
     btnAddReq.onclick = () => {
-      requirements.push('');
+      requirements.push({ text: '', image: '' });
       renderRequirementRows();
-      const inputs = reqContainer.querySelectorAll('.trade-req-input');
+      const inputs = reqContainer.querySelectorAll('.trade-req-text');
       if (inputs.length) inputs[inputs.length - 1].focus();
     };
 
@@ -3615,7 +3713,9 @@ body {
       e.preventDefault();
       const offeredTitle = document.getElementById('trade-offered-title').value.trim();
       const offeredDescription = document.getElementById('trade-offered-desc').value.trim();
-      const cleanReqs = requirements.map(r => r.trim()).filter(r => r.length > 0);
+      const cleanReqs = requirements
+        .map(r => typeof r === 'string' ? { text: r.trim(), image: '' } : { text: (r.text || '').trim(), image: (r.image || '').trim() })
+        .filter(r => r.text.length > 0);
 
       if (!offeredTitle) {
         Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'يرجى كتابة اسم المعروض للبدل' });
@@ -3676,7 +3776,7 @@ body {
     const tradeMsg = `مرحباً، أود إتمام عرض التبديل في متجركم (${store.name}):\n\n` +
       `📦 المعروض للتبديل: ${trade.offeredTitle}\n` +
       `🎯 المطلوب في المقابل:\n` +
-      reqList.map((r, i) => `${i + 1}. ${r}`).join('\n') +
+      reqList.map((r, i) => `${i + 1}. ${typeof r === 'string' ? r : (r.text || '')}`).join('\n') +
       `\n\nهل العرض ما زال متاحاً؟`;
 
     const waLink = store.whatsapp ? formatEgyptianWaLink(store.whatsapp, tradeMsg) : '';
@@ -3746,18 +3846,29 @@ body {
                   </p>
                 </div>
 
-                <ul class="space-y-2.5">
-                  ${reqList.map((req, idx) => `
-                    <li class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-start gap-3">
-                      <span class="w-6 h-6 rounded-lg bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 font-black text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                        ${idx + 1}
-                      </span>
-                      <div class="flex-1">
-                        <span class="text-xs sm:text-sm font-bold text-white leading-snug break-words">${req}</span>
-                      </div>
-                      <i data-lucide="check" class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-1"></i>
-                    </li>
-                  `).join('')}
+                <ul class="space-y-3">
+                  ${reqList.map((req, idx) => {
+                    const text = typeof req === 'string' ? req : (req.text || '');
+                    const img = typeof req === 'object' && req.image ? req.image : '';
+                    return `
+                      <li class="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-3 shadow-md">
+                        ${img ? `
+                          <div class="w-14 h-14 rounded-xl aspect-square overflow-hidden bg-slate-900 border border-cyan-500/40 flex-shrink-0 shadow-lg">
+                            <img src="${img}" class="w-full h-full object-cover aspect-square" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
+                          </div>
+                        ` : `
+                          <span class="w-8 h-8 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 font-black text-xs flex items-center justify-center flex-shrink-0">
+                            ${idx + 1}
+                          </span>
+                        `}
+                        <div class="flex-1 min-w-0">
+                          <span class="text-[10px] font-bold text-cyan-400 block mb-0.5">المطلوب ${idx + 1}:</span>
+                          <span class="text-xs sm:text-sm font-bold text-white leading-snug break-words">${text}</span>
+                        </div>
+                        <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400 flex-shrink-0"></i>
+                      </li>
+                    `;
+                  }).join('')}
                 </ul>
               </div>
 
@@ -4949,13 +5060,13 @@ body {
                   ${trade.offeredDescription ? `<p class="text-xs text-gray-300 line-clamp-2 mt-1">${trade.offeredDescription}</p>` : ''}
                 </div>
 
-                <div class="p-3 bg-slate-900/90 rounded-2xl border border-slate-800/80 space-y-1">
+                <div class="p-3 bg-slate-900/90 rounded-2xl border border-slate-800/80 space-y-1.5">
                   <div class="text-[11px] font-bold text-cyan-400 flex items-center gap-1">
                     <i data-lucide="target" class="w-3.5 h-3.5"></i>
                     <span>المطلوب في المقابل:</span>
                   </div>
                   <div class="text-xs text-gray-200 line-clamp-2 font-medium">
-                    ${reqList.map((r, i) => `${i + 1}. ${r}`).join(' • ')}
+                    ${reqList.map((r, i) => `${i + 1}. ${typeof r === 'string' ? r : (r.text || '')}`).join(' • ')}
                   </div>
                 </div>
               </div>
