@@ -53,10 +53,10 @@
   <!-- QRCode.js for direct store QR codes -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- Firebase Web SDK (Compat) -->
+  <!-- Firebase Web SDK (Compat: Auth + Realtime Database) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
   <!-- Inline CSS -->
@@ -353,11 +353,12 @@ body {
   'use strict';
 
   // =========================================================================
-  // 1. Firebase Configuration & Initialization (Dual Mode: Compat + Fallback)
+  // 1. Firebase Configuration & Initialization (Firebase Realtime Database)
   // =========================================================================
   const firebaseConfig = {
     apiKey: "AIzaSyB8AvIi-8RIEHPN4RuzOvIqBnIsr3ES4PQ",
     authDomain: "msn3-store.firebaseapp.com",
+    databaseURL: "https://msn3-store-default-rtdb.firebaseio.com",
     projectId: "msn3-store",
     storageBucket: "msn3-store.firebasestorage.app",
     messagingSenderId: "173366733878",
@@ -370,6 +371,90 @@ body {
   let fbDb = null;
   let fbStorage = null;
 
+  // Realtime Database Universal Adapter
+  function createRtdbAdapter(rtdb) {
+    return {
+      collection(colName) {
+        return {
+          doc(docId) {
+            const self = {
+              async set(data) {
+                return rtdb.ref(`${colName}/${docId}`).set(data);
+              },
+              async get() {
+                const snap = await rtdb.ref(`${colName}/${docId}`).get();
+                return {
+                  exists: snap.exists(),
+                  id: docId,
+                  data: () => snap.val() || {}
+                };
+              },
+              async update(updates) {
+                return rtdb.ref(`${colName}/${docId}`).update(updates);
+              },
+              async delete() {
+                return rtdb.ref(`${colName}/${docId}`).remove();
+              }
+            };
+            return self;
+          },
+          async get() {
+            const snap = await rtdb.ref(colName).get();
+            const docs = [];
+            if (snap.exists()) {
+              snap.forEach(child => {
+                docs.push({
+                  id: child.key,
+                  data: () => child.val() || {}
+                });
+              });
+            }
+            return {
+              forEach: (cb) => docs.forEach(cb),
+              docs,
+              empty: docs.length === 0
+            };
+          },
+          where(field, op, val) {
+            return {
+              async get() {
+                const snap = await rtdb.ref(colName).get();
+                const docs = [];
+                if (snap.exists()) {
+                  snap.forEach(child => {
+                    const data = child.val() || {};
+                    if (data[field] === val) {
+                      docs.push({
+                        id: child.key,
+                        data: () => data
+                      });
+                    }
+                  });
+                }
+                return {
+                  forEach: (cb) => docs.forEach(cb),
+                  docs,
+                  empty: docs.length === 0
+                };
+              }
+            };
+          }
+        };
+      },
+      batch() {
+        const batchOps = [];
+        return {
+          set(docRef, data) {
+            batchOps.push(docRef.set(data));
+          },
+          async commit() {
+            await Promise.all(batchOps);
+          }
+        };
+      }
+    };
+  }
+
   try {
     if (window.firebase) {
       if (!window.firebase.apps.length) {
@@ -378,16 +463,22 @@ body {
         fbApp = window.firebase.app();
       }
       fbAuth = window.firebase.auth();
-      fbDb = window.firebase.firestore();
+
+      if (window.firebase.database) {
+        const rtdb = window.firebase.database();
+        fbDb = createRtdbAdapter(rtdb);
+        console.log('✅ Connected to Firebase Realtime Database');
+      } else if (window.firebase.firestore) {
+        fbDb = window.firebase.firestore();
+      }
       fbStorage = window.firebase.storage();
-      console.log('✅ Firebase initialized via Compat SDK');
     }
   } catch (err) {
     console.warn('⚠️ Firebase initial connection note:', err.message);
   }
 
-  // Helper with 2.5s network timeout to prevent hanging when offline
-  async function withTimeout(promise, ms = 2500) {
+  // Helper with network timeout
+  async function withTimeout(promise, ms = 3000) {
     return Promise.race([
       promise,
       new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase timeout - using local storage')), ms))
