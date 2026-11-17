@@ -467,7 +467,7 @@ body {
   window.DEFAULT_PRODUCT_IMG = DEFAULT_PRODUCT_IMG;
   window.DEFAULT_STORE_LOGO = DEFAULT_STORE_LOGO;
 
-  async function compressImage(file, maxWidth = 800, maxHeight = 1066, quality = 0.8) {
+  async function compressImage(file, maxWidth = 700, maxHeight = 700, quality = 0.85) {
     if (!file || !file.type || !file.type.startsWith('image/')) return file;
     if (file.type === 'image/svg+xml' || file.type === 'image/gif') return file;
 
@@ -2093,25 +2093,28 @@ body {
       btnUploadLogo.disabled = true;
       uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري تجهيز الشعار...</span>`;
 
-      // 1. Immediately create permanent optimized Base64 Data URL
-      const persistentLogoUrl = await fileToDataUrl(file, 400, 400);
-      uploadedLogoUrl = persistentLogoUrl;
-      previewBox.innerHTML = `<img src="${persistentLogoUrl}" class="w-full h-full object-cover rounded-2xl" />`;
-      uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم تجهيز الشعار بنجاح!</span>`;
+      btnUploadLogo.disabled = true;
+      uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري رفع الشعار سحابياً...</span>`;
+      const tempPreview = URL.createObjectURL(file);
+      previewBox.innerHTML = `<img src="${tempPreview}" class="w-full h-full object-cover rounded-2xl" />`;
 
-      // 2. Asynchronously upload to cloud (Catbox) in background
-      uploadImageToCatbox(file, (msg) => { 
-        uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`; 
-      }).then((cloudUrl) => {
-        if (cloudUrl && (cloudUrl.startsWith('http://') || cloudUrl.startsWith('https://'))) {
+      try {
+        const cloudUrl = await uploadImageToCatbox(file, (msg) => {
+          uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`;
+        });
+        if (cloudUrl) {
           uploadedLogoUrl = cloudUrl;
-          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع السحابي للشعار!</span>`;
+          previewBox.innerHTML = `<img src="${cloudUrl}" class="w-full h-full object-cover rounded-2xl" />`;
+          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم رفع الشعار بنجاح! ✓</span>`;
         }
-      }).catch(() => {
-        // Fallback persistentLogoUrl is already set and ready
-      }).finally(() => {
+      } catch (err) {
+        const persistentLogoUrl = await fileToDataUrl(file, 400, 400);
+        uploadedLogoUrl = persistentLogoUrl;
+        previewBox.innerHTML = `<img src="${persistentLogoUrl}" class="w-full h-full object-cover rounded-2xl" />`;
+        uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم حفظ الشعار بنجاح!</span>`;
+      } finally {
         btnUploadLogo.disabled = false;
-      });
+      }
     };
 
     detailsForm.onsubmit = async (e) => {
@@ -3033,28 +3036,32 @@ body {
       const file = fileInput.files[0];
       if (!file) return;
 
+      const saveBtn = document.getElementById('btn-save-prod');
       btnUpload.disabled = true;
-      uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري تحسين وتجهيز الصورة...</span>`;
+      if (saveBtn) saveBtn.disabled = true;
 
-      // 1. Immediately create permanent optimized Base64 Data URL (persists forever, never 404s)
-      const persistentDataUrl = await fileToDataUrl(file);
-      uploadedUrl = persistentDataUrl;
-      previewBox.innerHTML = `<img src="${persistentDataUrl}" class="w-full h-full object-cover aspect-square" />`;
-      uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم تجهيز الصورة بنجاح!</span>`;
+      uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري رفع ومعالجة الصورة سحابياً...</span>`;
+      const tempPreview = URL.createObjectURL(file);
+      previewBox.innerHTML = `<img src="${tempPreview}" class="w-full h-full object-cover aspect-square" />`;
 
-      // 2. Asynchronously upload to cloud (Catbox) in background
-      uploadImageToCatbox(file, (msg) => { 
-        uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`; 
-      }).then((cloudUrl) => {
-        if (cloudUrl && (cloudUrl.startsWith('http://') || cloudUrl.startsWith('https://'))) {
+      try {
+        const cloudUrl = await uploadImageToCatbox(file, (msg) => {
+          uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`;
+        });
+        if (cloudUrl) {
           uploadedUrl = cloudUrl;
-          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع السحابي بنجاح!</span>`;
+          previewBox.innerHTML = `<img src="${cloudUrl}" class="w-full h-full object-cover aspect-square" />`;
+          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع السحابي بنجاح! ✓</span>`;
         }
-      }).catch(() => {
-        // Fallback persistentDataUrl is already set and ready
-      }).finally(() => {
+      } catch (err) {
+        const fallbackData = await fileToDataUrl(file);
+        uploadedUrl = fallbackData;
+        previewBox.innerHTML = `<img src="${fallbackData}" class="w-full h-full object-cover aspect-square" />`;
+        uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم حفظ الصورة بنجاح!</span>`;
+      } finally {
         btnUpload.disabled = false;
-      });
+        if (saveBtn) saveBtn.disabled = false;
+      }
     };
 
     form.onsubmit = async (e) => {
@@ -3707,26 +3714,28 @@ body {
       if (!file) return;
 
       btnUpload.disabled = true;
-      uploadStatus.innerHTML = `<span class="text-amber-400 font-semibold animate-pulse">جاري تجهيز الصورة...</span>`;
+      uploadStatus.innerHTML = `<span class="text-cyan-400 font-semibold animate-pulse">جاري رفع ومعالجة الصورة سحابياً...</span>`;
+      const tempPreview = URL.createObjectURL(file);
+      previewBox.innerHTML = `<img src="${tempPreview}" class="w-full h-full object-cover aspect-square" />`;
 
-      // Optimized compressed square Data URL (300x300)
-      const dataUrl = await fileToDataUrl(file, 300, 300);
-      walletUploadedUrl = dataUrl;
-      previewBox.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover aspect-square" />`;
-      uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم تجهيز الصورة بنجاح!</span>`;
-
-      // Upload in background to cloud
-      uploadImageToCatbox(file, (msg) => {
-        uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`;
-      }).then(cloudUrl => {
-        if (cloudUrl && (cloudUrl.startsWith('http://') || cloudUrl.startsWith('https://'))) {
+      try {
+        const cloudUrl = await uploadImageToCatbox(file, (msg) => {
+          uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`;
+        });
+        if (cloudUrl) {
           walletUploadedUrl = cloudUrl;
           urlInput.value = cloudUrl;
-          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع السحابي بنجاح!</span>`;
+          previewBox.innerHTML = `<img src="${cloudUrl}" class="w-full h-full object-cover aspect-square" />`;
+          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع السحابي بنجاح! ✓</span>`;
         }
-      }).catch(() => {}).finally(() => {
+      } catch (err) {
+        const dataUrl = await fileToDataUrl(file, 400, 400);
+        walletUploadedUrl = dataUrl;
+        previewBox.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover aspect-square" />`;
+        uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم حفظ الصورة بنجاح!</span>`;
+      } finally {
         btnUpload.disabled = false;
-      });
+      }
     };
 
     urlInput.oninput = () => {
