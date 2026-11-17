@@ -1367,23 +1367,44 @@ body {
 
   async function getPresetImages() {
     let list = [];
+    let fbSuccess = false;
     if (fbDb) {
       try {
-        const snap = await withTimeout(fbDb.collection('preset_images').get(), 2500);
+        const snap = await withTimeout(fbDb.collection('preset_images').get(), 4000);
         snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-      } catch (e) {}
+        fbSuccess = true;
+      } catch (e) {
+        console.warn('Firebase preset_images fetch error:', e);
+      }
     }
 
+    if (fbSuccess) {
+      if (list.length === 0) {
+        // If cloud collection is brand new, seed defaults to Firestore
+        try {
+          const batch = fbDb.batch();
+          DEFAULT_PRESET_IMAGES.forEach(img => {
+            const ref = fbDb.collection('preset_images').doc(img.id);
+            batch.set(ref, img);
+          });
+          await batch.commit();
+          list = [...DEFAULT_PRESET_IMAGES];
+        } catch (seedErr) {
+          list = [...DEFAULT_PRESET_IMAGES];
+        }
+      }
+      // Cloud is authoritative: update local storage cache to match cloud exactly
+      setLocalData(PRESET_IMAGES_STORAGE_KEY, list);
+      return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    }
+
+    // Fallback to local storage if offline or permission denied
     let localPresets = getLocalData(PRESET_IMAGES_STORAGE_KEY, null);
     if (!localPresets || !localPresets.length) {
       localPresets = [...DEFAULT_PRESET_IMAGES];
       setLocalData(PRESET_IMAGES_STORAGE_KEY, localPresets);
     }
-
-    const map = new Map();
-    localPresets.forEach(img => map.set(img.id, img));
-    list.forEach(img => map.set(img.id, img));
-    return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    return localPresets.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }
 
   async function addPresetImage({ title, imageUrl, category = 'عام' }) {
@@ -1399,8 +1420,11 @@ body {
 
     if (fbDb) {
       try {
-        await withTimeout(fbDb.collection('preset_images').doc(id).set(imgData), 2500);
-      } catch (e) {}
+        await withTimeout(fbDb.collection('preset_images').doc(id).set(imgData), 4000);
+      } catch (e) {
+        console.error('Firebase save preset error:', e);
+        throw new Error('فشل الحفظ في السيرفر السحابي. يرجى التأكد من صلاحيات Firebase Firestore Rules');
+      }
     }
 
     const localPresets = getLocalData(PRESET_IMAGES_STORAGE_KEY, [...DEFAULT_PRESET_IMAGES]);
@@ -1412,8 +1436,11 @@ body {
   async function deletePresetImage(id) {
     if (fbDb) {
       try {
-        await withTimeout(fbDb.collection('preset_images').doc(id).delete(), 2000);
-      } catch (e) {}
+        await withTimeout(fbDb.collection('preset_images').doc(id).delete(), 4000);
+      } catch (e) {
+        console.error('Firebase delete preset error:', e);
+        throw new Error('فشل الحذف من السيرفر السحابي. يرجى التأكد من صلاحيات Firebase Firestore Rules');
+      }
     }
     const localPresets = getLocalData(PRESET_IMAGES_STORAGE_KEY, [...DEFAULT_PRESET_IMAGES]).filter(p => p.id !== id);
     setLocalData(PRESET_IMAGES_STORAGE_KEY, localPresets);
@@ -2693,10 +2720,14 @@ body {
     const oldModal = document.getElementById('preset-image-picker-modal');
     if (oldModal) oldModal.remove();
 
-    const presets = await getPresetImages();
+    let presets = await getPresetImages();
     let currentCategory = 'all';
 
-    const categories = ['all', ...Array.from(new Set(presets.map(p => p.category || 'عام')))];
+    function buildCategories(list) {
+      return ['all', ...Array.from(new Set(list.map(p => p.category || 'عام')))];
+    }
+
+    let categories = buildCategories(presets);
 
     const modalHtml = `
       <div id="preset-image-picker-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
@@ -2711,7 +2742,13 @@ body {
                 <p class="text-xs text-gray-400">اختر صورة جاهزة بضغطة واحدة لاستخدامها لمنتجك فوراً</p>
               </div>
             </div>
-            <button id="btn-close-presets-modal" class="p-1 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <div class="flex items-center gap-2">
+              <button id="btn-refresh-presets-modal" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-400 text-xs font-bold transition flex items-center gap-1.5" title="تحديث الصور السحابية">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>تحديث</span>
+              </button>
+              <button id="btn-close-presets-modal" class="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-slate-800 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
           </div>
 
           <!-- Category filter tabs -->
@@ -2738,6 +2775,43 @@ body {
     document.getElementById('btn-close-presets-modal').onclick = () => modalEl.remove();
 
     const grid = document.getElementById('preset-images-grid');
+    const tabsContainer = document.getElementById('preset-cat-tabs');
+    const refreshBtn = document.getElementById('btn-refresh-presets-modal');
+
+    function bindCatTabs() {
+      modalEl.querySelectorAll('.preset-cat-pill').forEach(btn => {
+        btn.onclick = () => {
+          modalEl.querySelectorAll('.preset-cat-pill').forEach(b => {
+            b.className = 'preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-gray-300 hover:text-white transition';
+          });
+          btn.className = 'preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition';
+          currentCategory = btn.dataset.cat;
+          renderGrid();
+        };
+      });
+    }
+
+    refreshBtn.onclick = async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>جاري التحميل...</span>`;
+      if (window.lucide) window.lucide.createIcons();
+      presets = await getPresetImages();
+      categories = buildCategories(presets);
+      tabsContainer.innerHTML = `
+        <button class="preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition" data-cat="all">🌟 الكل (${presets.length})</button>
+        ${categories.filter(c => c !== 'all').map(c => `
+          <button class="preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-gray-300 hover:text-white transition" data-cat="${c}">
+            ${c}
+          </button>
+        `).join('')}
+      `;
+      currentCategory = 'all';
+      bindCatTabs();
+      renderGrid();
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>تحديث</span>`;
+      if (window.lucide) window.lucide.createIcons();
+    };
 
     function renderGrid() {
       const filtered = currentCategory === 'all'
@@ -2782,17 +2856,7 @@ body {
     }
 
     renderGrid();
-
-    modalEl.querySelectorAll('.preset-cat-pill').forEach(btn => {
-      btn.onclick = () => {
-        modalEl.querySelectorAll('.preset-cat-pill').forEach(b => {
-          b.className = 'preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-gray-300 hover:text-white transition';
-        });
-        btn.className = 'preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition';
-        currentCategory = btn.dataset.cat;
-        renderGrid();
-      };
-    });
+    bindCatTabs();
   }
 
   // Add Product Modal (With Category Select & Rating Picker: 1-5 Stars or Flame)
