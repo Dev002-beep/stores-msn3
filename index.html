@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AMG • منصة المتاجر الإلكترونية</title>
+  <title>المتجر الإلكتروني • صفقات وتسوق فوري</title>
   
   <!-- SEO & Social Meta -->
-  <meta name="description" content="منصة AMG المتكاملة لصناعة وإدارة المتاجر الإلكترونية والصفقات الفورية." />
-  <meta property="og:title" content="AMG • منصة المتاجر الإلكترونية" />
-  <meta property="og:description" content="أنشئ متجرك الإلكتروني في ثوانٍ مع تحديد مدة الصلاحية وإدارة المخزون والصفقات." />
+  <meta name="description" content="المتجر الإلكتروني الرسمي - تسوق المنتجات وعروض التبديل والصفقات الفورية المضمونة." />
+  <meta property="og:title" content="المتجر الإلكتروني • تسوق وصفقات فورية" />
+  <meta property="og:description" content="تسوق أفضل المنتجات وعروض التبديل والصفقات الفورية بكل سهولة وأمان." />
 
   <!-- Google Fonts: Cairo & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -888,7 +888,7 @@ body {
   }
 
   // Create Store
-  async function createStore({ ownerUid, ownerEmail, storeName, slug, logoUrl, whatsapp = '', telegram = '', currency = 'ج.م', bio = '', activationCode, durationDays }) {
+  async function createStore({ ownerUid, ownerEmail, storeName, slug, logoUrl, whatsapp = '', telegram = '', currency = 'ج.م', bio = '', themeColor = 'cyan', completedDealsCount = 0, activationCode, durationDays }) {
     const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
     const now = Date.now();
     const durationMs = durationDays * 24 * 60 * 60 * 1000;
@@ -906,6 +906,8 @@ body {
       telegram: telegram ? telegram.trim().replace(/^@/, '') : '',
       currency: currency.trim() || 'ج.م',
       bio: bio.trim(),
+      themeColor: themeColor || 'cyan',
+      completedDealsCount: parseInt(completedDealsCount, 10) || 0,
       categories: ['عام'],
       activationCode: activationCode.toUpperCase(),
       durationDays: durationDays,
@@ -1003,7 +1005,7 @@ body {
   // Check if store is active
   function isStoreActive(store) {
     if (!store) return false;
-    if (store.status === 'suspended') return false;
+    if (store.status === 'suspended' || store.status === 'disabled' || store.isDisabled) return false;
     return Date.now() < (store.expiresAt || 0);
   }
 
@@ -1374,6 +1376,15 @@ body {
       Object.assign(oTarget, orderUpdates);
       setLocalData('orders', localOrders);
     }
+
+    // Increment store's completed deals counter
+    try {
+      const store = await getStoreById(storeId);
+      if (store) {
+        const nextDeals = (parseInt(store.completedDealsCount, 10) || 0) + 1;
+        await updateStoreSettings(storeId, { completedDealsCount: nextDeals });
+      }
+    } catch (e) {}
 
     return { success: true, orderId, deducted: totalDeducted };
   }
@@ -1812,6 +1823,29 @@ body {
   // 8. Landing Page
   // =========================================================================
   function renderLandingPage(container) {
+    document.title = 'المتجر الإلكتروني • صفقات وتسوق فوري';
+    const mainFooter = document.getElementById('main-footer');
+    if (mainFooter) {
+      mainFooter.innerHTML = `
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-black text-[10px]">
+              AMG
+            </div>
+            <span>AMG &copy; 2026 • جميع الحقوق محفوظة</span>
+          </div>
+
+          <div class="flex items-center gap-4 text-xs font-semibold">
+            <a href="#" class="hover:text-cyan-400 transition">الرئيسية</a>
+            <span>•</span>
+            <a href="#register" class="hover:text-cyan-400 transition">إنشاء متجر</a>
+            <span>•</span>
+            <a href="#merchant" class="hover:text-cyan-400 transition">دخول التاجر</a>
+          </div>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+    }
     const currentMerchant = getCurrentMerchant();
 
     container.innerHTML = `
@@ -2122,6 +2156,37 @@ body {
               </select>
             </div>
 
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-gray-300 mb-2">ألوان وهوية واجهة المتجر *</label>
+              <div class="grid grid-cols-2 sm:grid-cols-6 gap-2" id="reg-theme-picker">
+                <button type="button" class="theme-choice-btn p-2 rounded-xl border border-cyan-500 bg-cyan-600/20 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition" data-color="cyan">
+                  <span class="w-3.5 h-3.5 rounded-full bg-cyan-400"></span>
+                  <span>سيان</span>
+                </button>
+                <button type="button" class="theme-choice-btn p-2 rounded-xl border border-slate-700 bg-slate-900 text-gray-300 text-xs font-bold flex items-center justify-center gap-1.5 transition" data-color="emerald">
+                  <span class="w-3.5 h-3.5 rounded-full bg-emerald-400"></span>
+                  <span>زمردي</span>
+                </button>
+                <button type="button" class="theme-choice-btn p-2 rounded-xl border border-slate-700 bg-slate-900 text-gray-300 text-xs font-bold flex items-center justify-center gap-1.5 transition" data-color="amber">
+                  <span class="w-3.5 h-3.5 rounded-full bg-amber-400"></span>
+                  <span>ذهبي</span>
+                </button>
+                <button type="button" class="theme-choice-btn p-2 rounded-xl border border-slate-700 bg-slate-900 text-gray-300 text-xs font-bold flex items-center justify-center gap-1.5 transition" data-color="purple">
+                  <span class="w-3.5 h-3.5 rounded-full bg-purple-400"></span>
+                  <span>بنفسجي</span>
+                </button>
+                <button type="button" class="theme-choice-btn p-2 rounded-xl border border-slate-700 bg-slate-900 text-gray-300 text-xs font-bold flex items-center justify-center gap-1.5 transition" data-color="rose">
+                  <span class="w-3.5 h-3.5 rounded-full bg-rose-400"></span>
+                  <span>وردي</span>
+                </button>
+                <button type="button" class="theme-choice-btn p-2 rounded-xl border border-slate-700 bg-slate-900 text-gray-300 text-xs font-bold flex items-center justify-center gap-1.5 transition" data-color="orange">
+                  <span class="w-3.5 h-3.5 rounded-full bg-orange-400"></span>
+                  <span>برتقالي</span>
+                </button>
+              </div>
+              <input type="hidden" id="reg-store-theme" value="cyan" />
+            </div>
+
             <div class="sm:col-span-2 p-3 bg-cyan-950/40 rounded-xl border border-cyan-500/20 text-xs text-cyan-300 flex items-center gap-2">
               <i data-lucide="info" class="w-4 h-4 flex-shrink-0 text-cyan-400"></i>
               <span>يلزم للتاجر إدخال رقم واتساب أو حساب تلجرام (واحدة على الأقل أو كلاهما) ليتمكن العملاء من مراسلتك بعد إتمام الطلب.</span>
@@ -2276,6 +2341,20 @@ body {
       }
     };
 
+    let selectedThemeColor = 'cyan';
+    const themeBtns = detailsForm.querySelectorAll('.theme-choice-btn');
+    themeBtns.forEach(btn => {
+      btn.onclick = () => {
+        themeBtns.forEach(b => {
+          b.className = 'theme-choice-btn p-2 rounded-xl border border-slate-700 bg-slate-900 text-gray-300 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        });
+        btn.className = 'theme-choice-btn p-2 rounded-xl border border-indigo-500 bg-indigo-600/30 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-md';
+        selectedThemeColor = btn.dataset.color || 'cyan';
+        const themeInp = document.getElementById('reg-store-theme');
+        if (themeInp) themeInp.value = selectedThemeColor;
+      };
+    });
+
     detailsForm.onsubmit = async (e) => {
       e.preventDefault();
       if (!validatedCode) {
@@ -2288,6 +2367,7 @@ body {
       const whatsapp = (document.getElementById('reg-store-whatsapp')?.value || '').trim();
       const telegram = (document.getElementById('reg-store-telegram')?.value || '').trim();
       const currency = document.getElementById('reg-store-currency').value;
+      const themeColor = document.getElementById('reg-store-theme')?.value || selectedThemeColor || 'cyan';
       const submitBtn = document.getElementById('btn-create-store-submit');
 
       if (!whatsapp && !telegram) {
@@ -2335,6 +2415,8 @@ body {
           whatsapp,
           telegram,
           currency,
+          themeColor,
+          completedDealsCount: 0,
           activationCode: validatedCode,
           durationDays
         });
@@ -4105,6 +4187,18 @@ body {
             <label class="block text-xs font-semibold text-gray-300 mb-1">وصف المتجر</label>
             <textarea id="settings-store-bio" rows="3" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm">${store.bio || ''}</textarea>
           </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-2">ألوان وهوية واجهة المتجر</label>
+            <div class="grid grid-cols-2 sm:grid-cols-6 gap-2" id="settings-theme-picker">
+              ${['cyan', 'emerald', 'amber', 'purple', 'rose', 'orange'].map(c => `
+                <button type="button" class="settings-theme-btn p-2 rounded-xl border ${ (store.themeColor || 'cyan') === c ? 'border-indigo-500 bg-indigo-600/30 text-white shadow-md' : 'border-slate-700 bg-slate-900 text-gray-300' } text-xs font-bold flex items-center justify-center gap-1.5 transition" data-color="${c}">
+                  <span class="w-3.5 h-3.5 rounded-full ${ c === 'cyan' ? 'bg-cyan-400' : (c === 'emerald' ? 'bg-emerald-400' : (c === 'amber' ? 'bg-amber-400' : (c === 'purple' ? 'bg-purple-400' : (c === 'rose' ? 'bg-rose-400' : 'bg-orange-400')))) }"></span>
+                  <span>${ c === 'cyan' ? 'سيان' : (c === 'emerald' ? 'زمردي' : (c === 'amber' ? 'ذهبي' : (c === 'purple' ? 'بنفسجي' : (c === 'rose' ? 'وردي' : 'برتقالي')))) }</span>
+                </button>
+              `).join('')}
+            </div>
+            <input type="hidden" id="settings-store-theme" value="${store.themeColor || 'cyan'}" />
+          </div>
           <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg">حفظ التعديلات</button>
         </form>
       </div>
@@ -4117,12 +4211,24 @@ body {
       Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'تم نسخ الرابط!', timer: 1500, showConfirmButton: false });
     };
 
+    contentDiv.querySelectorAll('.settings-theme-btn').forEach(btn => {
+      btn.onclick = () => {
+        contentDiv.querySelectorAll('.settings-theme-btn').forEach(b => {
+          b.className = 'settings-theme-btn p-2 rounded-xl border border-slate-700 bg-slate-900 text-gray-300 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        });
+        btn.className = 'settings-theme-btn p-2 rounded-xl border border-indigo-500 bg-indigo-600/30 text-white shadow-md text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        const hiddenInp = document.getElementById('settings-store-theme');
+        if (hiddenInp) hiddenInp.value = btn.dataset.color;
+      };
+    });
+
     document.getElementById('store-settings-form').onsubmit = async (e) => {
       e.preventDefault();
       const name = document.getElementById('settings-store-name').value.trim();
       const whatsapp = (document.getElementById('settings-store-whatsapp')?.value || '').trim();
       const telegram = (document.getElementById('settings-store-telegram')?.value || '').trim();
       const bio = document.getElementById('settings-store-bio').value.trim();
+      const themeColor = document.getElementById('settings-store-theme')?.value || store.themeColor || 'cyan';
 
       if (!whatsapp && !telegram) {
         Swal.fire({
@@ -4142,11 +4248,12 @@ body {
         return;
       }
 
-      await updateStoreSettings(store.id, { name, whatsapp, telegram, bio, logoUrl: newLogoUrl });
+      await updateStoreSettings(store.id, { name, whatsapp, telegram, bio, logoUrl: newLogoUrl, themeColor });
       store.name = name;
       store.whatsapp = whatsapp;
       store.telegram = telegram;
       store.bio = bio;
+      store.themeColor = themeColor;
       Swal.fire({ icon: 'success', title: 'تم التحديث بنجاح', timer: 1200, showConfirmButton: false });
     };
   }
@@ -4661,6 +4768,20 @@ body {
       return;
     }
 
+    if (store.status === 'disabled' || store.isDisabled) {
+      container.innerHTML = `
+        <div class="max-w-lg mx-auto my-16 p-8 glass-panel rounded-3xl text-center space-y-4 border border-rose-500/30">
+          <div class="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
+            <i data-lucide="shield-alert" class="w-8 h-8"></i>
+          </div>
+          <h2 class="text-2xl font-black text-white">${store.name}</h2>
+          <p class="text-gray-300 text-sm leading-relaxed">عذراً، هذا المتجر متوقف أو معطل حالياً من قبل الإدارة. يرجى التواصل مع إدارة المتجر.</p>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
     if (!isStoreActive(store)) {
       container.innerHTML = `
         <div class="max-w-lg mx-auto my-16 p-8 glass-panel rounded-3xl text-center space-y-4 border border-amber-500/30">
@@ -4669,8 +4790,55 @@ body {
           <p class="text-gray-300 text-sm">عذراً، هذا المتجر متوقف مؤقتاً لانتهاء فترة الاشتراك أو الصيانة من قبل التاجر.</p>
         </div>
       `;
+      if (window.lucide) window.lucide.createIcons();
       return;
     }
+
+    // Dynamic Title, Meta Tags & Standalone Store Footer
+    document.title = `${store.name} • المتجر الرسمي`;
+    const ogTitleEl = document.querySelector('meta[property="og:title"]');
+    if (ogTitleEl) ogTitleEl.content = `${store.name} • المتجر الرسمي`;
+    const ogDescEl = document.querySelector('meta[property="og:description"]');
+    if (ogDescEl) ogDescEl.content = store.bio || `أهلاً بكم في متجر ${store.name} - تسوق أفضل المنتجات وعروض البدل المباشرة.`;
+    const metaDescEl = document.querySelector('meta[name="description"]');
+    if (metaDescEl) metaDescEl.content = store.bio || `متجر ${store.name} الرسمي`;
+
+    const mainFooter = document.getElementById('main-footer');
+    if (mainFooter) {
+      mainFooter.innerHTML = `
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center flex-shrink-0 shadow-md">
+              ${store.logoUrl ? `<img src="${store.logoUrl}" class="w-full h-full object-cover" />` : `<i data-lucide="store" class="w-5 h-5 text-gray-400"></i>`}
+            </div>
+            <div class="text-right">
+              <div class="font-black text-white text-sm sm:text-base">${store.name}</div>
+              <div class="text-[11px] text-gray-400 font-medium">جميع الحقوق محفوظة &copy; ${new Date().getFullYear()} • متجر إلكتروني مستقل وموثق</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-400 font-semibold">
+            <span class="flex items-center gap-1.5 text-emerald-400"><i data-lucide="shield-check" class="w-4 h-4"></i> تسوق آمن 100%</span>
+            <span>•</span>
+            <span class="text-amber-400">⚡ صفقات معتمدة</span>
+            <span>•</span>
+            <span>دعم ومتابعة مباشرة</span>
+          </div>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    // Theme Color Configuration
+    const themeKey = store.themeColor || 'cyan';
+    const THEME_PRESETS = {
+      cyan: { border: 'border-cyan-500/30', btn: 'from-cyan-600 to-teal-500', text: 'text-cyan-400', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30', shadow: 'shadow-cyan-600/20' },
+      emerald: { border: 'border-emerald-500/30', btn: 'from-emerald-600 to-teal-600', text: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30', shadow: 'shadow-emerald-600/20' },
+      amber: { border: 'border-amber-500/30', btn: 'from-amber-500 to-orange-500', text: 'text-amber-400', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30', shadow: 'shadow-amber-500/20' },
+      purple: { border: 'border-purple-500/30', btn: 'from-purple-600 to-indigo-600', text: 'text-purple-400', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30', shadow: 'shadow-purple-600/20' },
+      rose: { border: 'border-rose-500/30', btn: 'from-rose-600 to-pink-600', text: 'text-rose-400', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/30', shadow: 'shadow-rose-600/20' },
+      orange: { border: 'border-orange-500/30', btn: 'from-orange-500 to-amber-600', text: 'text-orange-400', badge: 'bg-orange-500/20 text-orange-300 border-orange-500/30', shadow: 'shadow-orange-500/20' }
+    };
+    const curTheme = THEME_PRESETS[themeKey] || THEME_PRESETS.cyan;
 
     const products = await getStoreProducts(store.id);
     const trades = await getStoreTrades(store.id);
@@ -4772,12 +4940,24 @@ body {
       <div class="max-w-6xl mx-auto py-6 px-4 space-y-8 pb-32">
         
         <!-- Store Header -->
-        <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-cyan-500/20 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-right">
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl border ${curTheme.border} flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-right shadow-2xl">
           <div class="flex flex-col sm:flex-row items-center gap-5">
-            <img src="${store.logoUrl || window.DEFAULT_STORE_LOGO}" class="w-20 h-20 rounded-2xl object-cover border-2 border-cyan-500/40 bg-slate-900 shadow-md" onerror="this.onerror=null; this.src=window.DEFAULT_STORE_LOGO;" />
+            <img src="${store.logoUrl || window.DEFAULT_STORE_LOGO}" class="w-20 h-20 rounded-2xl object-cover border-2 ${curTheme.border} bg-slate-900 shadow-md" onerror="this.onerror=null; this.src=window.DEFAULT_STORE_LOGO;" />
             <div>
               <h1 class="text-2xl sm:text-3xl font-black text-white">${store.name}</h1>
               <p class="text-sm text-gray-300 mt-1 max-w-xl">${store.bio || 'أهلاً بكم في متجرنا! شحن فوري ومضمون.'}</p>
+              
+              <!-- Trust Badges & Completed Deals Counter -->
+              <div class="flex flex-wrap items-center gap-2 mt-2.5 justify-center sm:justify-start">
+                <span class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center gap-1 shadow-sm">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>متجر معتمد وموثق</span>
+                </span>
+                <span class="px-2.5 py-1 rounded-xl text-[11px] font-black bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 flex items-center gap-1 shadow-sm">
+                  <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>⚡ ${parseInt(store.completedDealsCount, 10) || 0} صفقة ناجحة</span>
+                </span>
+              </div>
             </div>
           </div>
           <div class="flex flex-wrap items-center justify-center gap-3">
@@ -4798,7 +4978,7 @@ body {
 
         <!-- Store Navigation Tabs (المنتجات للبيع vs قسم التبديل والمقايضة) -->
         <div class="flex items-center gap-3 border-b border-slate-800/80 pb-3" id="storefront-main-tabs">
-          <button id="storefront-tab-prods" class="px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg shadow-cyan-600/20">
+          <button id="storefront-tab-prods" class="px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-gradient-to-r ${curTheme.btn} text-white shadow-lg ${curTheme.shadow}">
             <i data-lucide="shopping-bag" class="w-4 h-4"></i>
             <span>قائمة المنتجات (${products.length})</span>
           </button>
@@ -5005,7 +5185,7 @@ body {
       if (targetTab === 'products') {
         prodsSection.classList.remove('hidden');
         tradesSection.classList.add('hidden');
-        tabProdsBtn.className = 'px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg shadow-cyan-600/20';
+        tabProdsBtn.className = `px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-gradient-to-r ${curTheme.btn} text-white shadow-lg ${curTheme.shadow}`;
         tabTradesBtn.className = 'px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 bg-slate-900 border border-slate-800 text-amber-400 hover:text-amber-300 hover:border-amber-500/40';
         updateCartBar();
       } else {
