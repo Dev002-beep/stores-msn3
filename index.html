@@ -255,7 +255,7 @@ body {
 
 /* Image preview containers */
 .aspect-product {
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
 }
 
@@ -1285,6 +1285,139 @@ body {
     }
 
     return { success: true, orderId, deducted: totalDeducted };
+  }
+
+  // =========================================================================
+  // 5.5 Preset Images Wallet Module (Shared Library for Merchants & Super Admin)
+  // =========================================================================
+  const PRESET_IMAGES_STORAGE_KEY = 'msn3_preset_images';
+
+  const DEFAULT_PRESET_IMAGES = [
+    {
+      id: 'preset_freefire',
+      title: 'جواهر فري فاير',
+      category: 'ألعاب',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='g1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%230284c7'/><stop offset='100%25' stop-color='%2306b6d4'/></linearGradient></defs><rect width='200' height='200' rx='30' fill='%230f172a'/><polygon points='100,35 160,80 135,165 65,165 40,80' fill='url(%23g1)' stroke='%2338bdf8' stroke-width='4'/><polygon points='100,55 140,85 100,145 60,85' fill='%23ffffff' opacity='0.4'/><text x='100' y='185' fill='%2338bdf8' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>FREE FIRE</text></svg>",
+      createdAt: 1700000000000
+    },
+    {
+      id: 'preset_pubg',
+      title: 'شدات ببجي موبايل',
+      category: 'ألعاب',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='g2' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23f59e0b'/><stop offset='100%25' stop-color='%23d97706'/></linearGradient></defs><rect width='200' height='200' rx='30' fill='%230f172a'/><circle cx='100' cy='95' r='55' fill='url(%23g2)'/><text x='100' y='108' fill='%231e293b' font-size='34' font-weight='900' text-anchor='middle' font-family='sans-serif'>UC</text><text x='100' y='185' fill='%23f59e0b' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>PUBG MOBILE</text></svg>",
+      createdAt: 1700000000001
+    },
+    {
+      id: 'preset_roblox',
+      title: 'روبوكس روبلوكس',
+      category: 'ألعاب',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='g3' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%2310b981'/><stop offset='100%25' stop-color='%23059669'/></linearGradient></defs><rect width='200' height='200' rx='30' fill='%230f172a'/><rect x='55' y='55' width='90' height='90' rx='20' transform='rotate(45 100 100)' fill='url(%23g3)' stroke='%2334d399' stroke-width='4'/><rect x='80' y='80' width='40' height='40' rx='10' transform='rotate(45 100 100)' fill='%230f172a'/><text x='100' y='185' fill='%2334d399' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>ROBLOX</text></svg>",
+      createdAt: 1700000000002
+    },
+    {
+      id: 'preset_psn',
+      title: 'بطاقات بلايستيشن',
+      category: 'بطاقات',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='g4' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%232563eb'/><stop offset='100%25' stop-color='%231d4ed8'/></linearGradient></defs><rect width='200' height='200' rx='30' fill='%230f172a'/><rect x='40' y='45' width='120' height='100' rx='22' fill='url(%23g4)'/><circle cx='75' cy='85' r='12' fill='%2338bdf8'/><rect x='115' y='75' width='20' height='20' rx='4' fill='%23f43f5e'/><text x='100' y='130' fill='%23ffffff' font-size='20' font-weight='900' text-anchor='middle' font-family='sans-serif'>PSN</text><text x='100' y='185' fill='%2360a5fa' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>PLAYSTATION</text></svg>",
+      createdAt: 1700000000003
+    },
+    {
+      id: 'preset_steam',
+      title: 'بطاقات ستيم Steam',
+      category: 'بطاقات',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='g5' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23334155'/><stop offset='100%25' stop-color='%230f172a'/></linearGradient></defs><rect width='200' height='200' rx='30' fill='%23020617'/><circle cx='100' cy='95' r='55' fill='url(%23g5)' stroke='%2338bdf8' stroke-width='5'/><circle cx='120' cy='80' r='20' fill='%2338bdf8'/><path d='M70,120 L110,95' stroke='%2338bdf8' stroke-width='12' stroke-linecap='round'/><circle cx='70' cy='120' r='14' fill='%2338bdf8'/><text x='100' y='185' fill='%2338bdf8' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>STEAM</text></svg>",
+      createdAt: 1700000000004
+    },
+    {
+      id: 'preset_googleplay',
+      title: 'بطاقات جوجل بلاي',
+      category: 'بطاقات',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' rx='30' fill='%230f172a'/><polygon points='60,40 155,100 60,160' fill='%230284c7'/><polygon points='60,40 120,100 60,100' fill='%2310b981'/><polygon points='60,100 120,100 60,160' fill='%23ef4444'/><polygon points='120,100 155,100 60,160' fill='%23f59e0b'/><text x='100' y='185' fill='%2338bdf8' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>GOOGLE PLAY</text></svg>",
+      createdAt: 1700000000005
+    },
+    {
+      id: 'preset_netflix',
+      title: 'اشتراك نتفلكس',
+      category: 'اشتراكات',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' rx='30' fill='%23000000'/><path d='M60,40 L85,40 L85,150 L60,150 Z' fill='%23b91c1c'/><path d='M115,40 L140,40 L140,150 L115,150 Z' fill='%23b91c1c'/><path d='M60,40 L140,150 L115,150 L60,40 Z' fill='%23e50914'/><text x='100' y='185' fill='%23e50914' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>NETFLIX</text></svg>",
+      createdAt: 1700000000006
+    },
+    {
+      id: 'preset_discord',
+      title: 'دسكورد نيترو',
+      category: 'اشتراكات',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='gn' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%238b5cf6'/><stop offset='100%25' stop-color='%23ec4899'/></linearGradient></defs><rect width='200' height='200' rx='30' fill='%230f172a'/><circle cx='100' cy='95' r='55' fill='url(%23gn)'/><polygon points='100,55 125,115 100,105 75,115' fill='%23ffffff'/><circle cx='100' cy='125' r='8' fill='%23ffffff'/><text x='100' y='185' fill='%23f472b6' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>DISCORD NITRO</text></svg>",
+      createdAt: 1700000000007
+    },
+    {
+      id: 'preset_tiktok',
+      title: 'عملات تيك توك',
+      category: 'عام',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='gt' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23f59e0b'/><stop offset='100%25' stop-color='%23eab308'/></linearGradient></defs><rect width='200' height='200' rx='30' fill='%230f172a'/><circle cx='100' cy='95' r='55' fill='url(%23gt)' stroke='%23fef08a' stroke-width='4'/><text x='100' y='112' fill='%2378350f' font-size='44' font-weight='900' text-anchor='middle' font-family='sans-serif'>🪙</text><text x='100' y='185' fill='%23facc15' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>TIKTOK</text></svg>",
+      createdAt: 1700000000008
+    },
+    {
+      id: 'preset_spotify',
+      title: 'اشتراك سبوتيفاي',
+      category: 'اشتراكات',
+      imageUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' rx='30' fill='%230f172a'/><circle cx='100' cy='95' r='55' fill='%231db954'/><path d='M68,85 Q100,75 132,87' stroke='%230f172a' stroke-width='8' stroke-linecap='round' fill='none'/><path d='M73,100 Q100,92 127,101' stroke='%230f172a' stroke-width='7' stroke-linecap='round' fill='none'/><path d='M78,114 Q100,108 122,115' stroke='%230f172a' stroke-width='6' stroke-linecap='round' fill='none'/><text x='100' y='185' fill='%231db954' font-size='16' font-weight='900' text-anchor='middle' font-family='sans-serif'>SPOTIFY</text></svg>",
+      createdAt: 1700000000009
+    }
+  ];
+
+  async function getPresetImages() {
+    let list = [];
+    if (fbDb) {
+      try {
+        const snap = await withTimeout(fbDb.collection('preset_images').get(), 2500);
+        snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      } catch (e) {}
+    }
+
+    let localPresets = getLocalData(PRESET_IMAGES_STORAGE_KEY, null);
+    if (!localPresets || !localPresets.length) {
+      localPresets = [...DEFAULT_PRESET_IMAGES];
+      setLocalData(PRESET_IMAGES_STORAGE_KEY, localPresets);
+    }
+
+    const map = new Map();
+    localPresets.forEach(img => map.set(img.id, img));
+    list.forEach(img => map.set(img.id, img));
+    return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }
+
+  async function addPresetImage({ title, imageUrl, category = 'عام' }) {
+    if (!imageUrl) throw new Error('يرجى تحديد أو رفع صورة');
+    const id = `preset_${Date.now()}_${Math.floor(Math.random() * 900 + 100)}`;
+    const imgData = {
+      id,
+      title: (title || 'صورة مقترحة').trim(),
+      category: (category || 'عام').trim(),
+      imageUrl: imageUrl.trim(),
+      createdAt: Date.now()
+    };
+
+    if (fbDb) {
+      try {
+        await withTimeout(fbDb.collection('preset_images').doc(id).set(imgData), 2500);
+      } catch (e) {}
+    }
+
+    const localPresets = getLocalData(PRESET_IMAGES_STORAGE_KEY, [...DEFAULT_PRESET_IMAGES]);
+    localPresets.unshift(imgData);
+    setLocalData(PRESET_IMAGES_STORAGE_KEY, localPresets);
+    return imgData;
+  }
+
+  async function deletePresetImage(id) {
+    if (fbDb) {
+      try {
+        await withTimeout(fbDb.collection('preset_images').doc(id).delete(), 2000);
+      } catch (e) {}
+    }
+    const localPresets = getLocalData(PRESET_IMAGES_STORAGE_KEY, [...DEFAULT_PRESET_IMAGES]).filter(p => p.id !== id);
+    setLocalData(PRESET_IMAGES_STORAGE_KEY, localPresets);
+    return true;
   }
 
   // =========================================================================
@@ -2487,7 +2620,7 @@ body {
         return `
           <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-slate-800">
             <div>
-              <div class="relative aspect-[3/4] bg-slate-950 overflow-hidden">
+              <div class="relative aspect-square bg-slate-950 overflow-hidden">
                 <img src="${prod.imageUrl || window.DEFAULT_PRODUCT_IMG}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
                 <span class="absolute top-3 right-3 px-2.5 py-1 rounded-xl text-xs font-bold ${isOutOfStock ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950'}">
                   ${isOutOfStock ? 'نفذت الكمية ❌' : `متوفر: ${prod.quantity}`}
@@ -2553,6 +2686,113 @@ body {
     document.getElementById('btn-open-add-product').onclick = () => {
       openProductModal(store, null, () => renderProductsTab(contentDiv, store));
     };
+  }
+
+  // Preset Image Picker Modal for Merchants
+  async function openPresetImagePickerModal(onSelect = () => {}) {
+    const oldModal = document.getElementById('preset-image-picker-modal');
+    if (oldModal) oldModal.remove();
+
+    const presets = await getPresetImages();
+    let currentCategory = 'all';
+
+    const categories = ['all', ...Array.from(new Set(presets.map(p => p.category || 'عام')))];
+
+    const modalHtml = `
+      <div id="preset-image-picker-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+        <div class="glass-panel w-full max-w-2xl p-6 sm:p-8 rounded-3xl border border-amber-500/40 text-right space-y-5 max-h-[90vh] flex flex-col shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-shrink-0">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                <i data-lucide="wallet" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-extrabold text-white">محفظة الصور المقترحة</h3>
+                <p class="text-xs text-gray-400">اختر صورة جاهزة بضغطة واحدة لاستخدامها لمنتجك فوراً</p>
+              </div>
+            </div>
+            <button id="btn-close-presets-modal" class="p-1 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+          </div>
+
+          <!-- Category filter tabs -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none flex-shrink-0" id="preset-cat-tabs">
+            <button class="preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition" data-cat="all">🌟 الكل (${presets.length})</button>
+            ${categories.filter(c => c !== 'all').map(c => `
+              <button class="preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-gray-300 hover:text-white transition" data-cat="${c}">
+                ${c}
+              </button>
+            `).join('')}
+          </div>
+
+          <!-- Images Grid -->
+          <div id="preset-images-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-1 min-h-[260px]">
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    if (window.lucide) window.lucide.createIcons();
+
+    const modalEl = document.getElementById('preset-image-picker-modal');
+    document.getElementById('btn-close-presets-modal').onclick = () => modalEl.remove();
+
+    const grid = document.getElementById('preset-images-grid');
+
+    function renderGrid() {
+      const filtered = currentCategory === 'all'
+        ? presets
+        : presets.filter(p => (p.category || 'عام') === currentCategory);
+
+      if (!filtered.length) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-gray-500">
+            <i data-lucide="image" class="w-10 h-10 mx-auto mb-2 opacity-30"></i>
+            <p class="text-xs font-bold">لا توجد صور في هذا القسم</p>
+          </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => `
+        <div class="preset-card group relative aspect-square rounded-2xl overflow-hidden border-2 border-slate-800 hover:border-amber-400 bg-slate-950 cursor-pointer transition shadow-lg flex flex-col justify-between" data-id="${item.id}">
+          <img src="${item.imageUrl}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-90 group-hover:opacity-100 transition flex flex-col justify-end p-2.5">
+            <span class="text-[11px] font-bold text-white truncate text-right drop-shadow">${item.title}</span>
+            <span class="text-[9px] text-amber-300 font-bold block mt-0.5 text-right">${item.category || 'عام'}</span>
+          </div>
+          <div class="absolute inset-0 bg-amber-500/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+            <span class="px-2.5 py-1 bg-amber-500 text-slate-950 font-black text-xs rounded-lg shadow-lg">اختيار ✓</span>
+          </div>
+        </div>
+      `).join('');
+
+      if (window.lucide) window.lucide.createIcons();
+
+      grid.querySelectorAll('.preset-card').forEach(card => {
+        card.onclick = () => {
+          const target = presets.find(p => p.id === card.dataset.id);
+          if (target) {
+            onSelect(target);
+            modalEl.remove();
+          }
+        };
+      });
+    }
+
+    renderGrid();
+
+    modalEl.querySelectorAll('.preset-cat-pill').forEach(btn => {
+      btn.onclick = () => {
+        modalEl.querySelectorAll('.preset-cat-pill').forEach(b => {
+          b.className = 'preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-gray-300 hover:text-white transition';
+        });
+        btn.className = 'preset-cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition';
+        currentCategory = btn.dataset.cat;
+        renderGrid();
+      };
+    });
   }
 
   // Add Product Modal (With Category Select & Rating Picker: 1-5 Stars or Flame)
@@ -2639,20 +2879,26 @@ body {
               <input type="number" step="0.01" min="0" id="modal-prod-price" value="${existingProd ? existingProd.price : ''}" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-code text-left focus:border-cyan-500" placeholder="50" />
             </div>
 
-            <!-- Image Upload -->
+            <!-- Image Upload & Preset Wallet -->
             <div>
-              <label class="block text-xs font-semibold text-gray-300 mb-1">صورة المنتج *</label>
+              <label class="block text-xs font-semibold text-gray-300 mb-1">صورة المنتج (مربعة الشكل) *</label>
               <div class="flex items-center gap-4">
-                <div id="prod-image-preview" class="w-16 h-20 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-                  ${existingProd && existingProd.imageUrl ? `<img src="${existingProd.imageUrl}" class="w-full h-full object-cover" />` : `<i data-lucide="image" class="w-6 h-6 text-gray-600"></i>`}
+                <div id="prod-image-preview" class="w-16 h-16 rounded-xl aspect-square bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  ${existingProd && existingProd.imageUrl ? `<img src="${existingProd.imageUrl}" class="w-full h-full object-cover aspect-square" />` : `<i data-lucide="image" class="w-6 h-6 text-gray-600"></i>`}
                 </div>
-                <div class="flex-1">
-                  <input type="file" id="modal-prod-file" accept="image/*" class="hidden" />
-                  <button type="button" id="btn-upload-prod-img" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-slate-700">
-                    <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-                    <span>اختر صورة المنتج للرفع</span>
-                  </button>
-                  <div id="prod-upload-status" class="text-[11px] text-gray-400 mt-1">تظهر مباشرة لعملائك بالمتجر</div>
+                <div class="flex-1 space-y-2">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <input type="file" id="modal-prod-file" accept="image/*" class="hidden" />
+                    <button type="button" id="btn-upload-prod-img" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-slate-700">
+                      <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                      <span>رفع من جهازي</span>
+                    </button>
+                    <button type="button" id="btn-open-image-presets" class="px-3 py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 text-amber-300 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-amber-500/40">
+                      <i data-lucide="wallet" class="w-4 h-4 text-amber-400"></i>
+                      <span>محفظة صور مقترحة 🖼️</span>
+                    </button>
+                  </div>
+                  <div id="prod-upload-status" class="text-[11px] text-gray-400">يمكنك رفع صورة أو اختيار صورة جاهزة من المحفظة</div>
                 </div>
               </div>
             </div>
@@ -2678,9 +2924,21 @@ body {
     const closeBtn = document.getElementById('btn-close-prod-modal');
     const fileInput = document.getElementById('modal-prod-file');
     const btnUpload = document.getElementById('btn-upload-prod-img');
+    const btnPresets = document.getElementById('btn-open-image-presets');
     const previewBox = document.getElementById('prod-image-preview');
     const uploadStatus = document.getElementById('prod-upload-status');
     const form = document.getElementById('prod-modal-form');
+
+    // Preset Wallet Picker Trigger
+    if (btnPresets) {
+      btnPresets.onclick = () => {
+        openPresetImagePickerModal((selectedPreset) => {
+          uploadedUrl = selectedPreset.imageUrl;
+          previewBox.innerHTML = `<img src="${selectedPreset.imageUrl}" class="w-full h-full object-cover aspect-square" />`;
+          uploadStatus.innerHTML = `<span class="text-amber-400 font-bold">تم اختيار صورة (${selectedPreset.title}) من المحفظة! ✨</span>`;
+        });
+      };
+    }
 
     // Rating Box UI Highlighting
     const ratingBoxes = modalEl.querySelectorAll('.rating-box');
@@ -2717,7 +2975,7 @@ body {
       // 1. Immediately create permanent optimized Base64 Data URL (persists forever, never 404s)
       const persistentDataUrl = await fileToDataUrl(file);
       uploadedUrl = persistentDataUrl;
-      previewBox.innerHTML = `<img src="${persistentDataUrl}" class="w-full h-full object-cover" />`;
+      previewBox.innerHTML = `<img src="${persistentDataUrl}" class="w-full h-full object-cover aspect-square" />`;
       uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم تجهيز الصورة بنجاح!</span>`;
 
       // 2. Asynchronously upload to cloud (Catbox) in background
@@ -3100,17 +3358,21 @@ body {
               <i data-lucide="crown" class="w-8 h-8 text-amber-300"></i>
             </div>
             <div>
-              <h1 class="text-2xl font-black text-white">إدارة منصة مصنع المتاجر</h1>
-              <p class="text-sm text-gray-400">توليد أكواد الاشتراكات، تحديد مدة المتاجر، ومراقبة المتاجر</p>
+              <h1 class="text-2xl font-black text-white">إدارة منصة AMG</h1>
+              <p class="text-sm text-gray-400">توليد أكواد الاشتراكات، محفظة الصور المقترحة للتجار، ومراقبة المتاجر</p>
             </div>
           </div>
           <button id="btn-admin-logout" class="px-4 py-2 bg-rose-500/20 text-rose-400 rounded-xl text-sm font-semibold border border-rose-500/30">خروج</button>
         </div>
 
-        <div class="flex border-b border-slate-800 gap-6 text-sm font-bold">
-          <button id="tab-btn-generator" class="pb-3 text-indigo-400 border-b-2 border-indigo-500">توليد أكواد جديدة</button>
-          <button id="tab-btn-codes-list" class="pb-3 text-gray-400">جميع الأكواد المنشأة</button>
-          <button id="tab-btn-stores-list" class="pb-3 text-gray-400">المتاجر المنشأة</button>
+        <div class="flex border-b border-slate-800 gap-4 sm:gap-6 text-sm font-bold overflow-x-auto pb-1 scrollbar-none">
+          <button id="tab-btn-generator" class="pb-3 text-indigo-400 border-b-2 border-indigo-500 whitespace-nowrap">توليد أكواد جديدة</button>
+          <button id="tab-btn-codes-list" class="pb-3 text-gray-400 hover:text-white whitespace-nowrap">جميع الأكواد المنشأة</button>
+          <button id="tab-btn-stores-list" class="pb-3 text-gray-400 hover:text-white whitespace-nowrap">المتاجر المنشأة</button>
+          <button id="tab-btn-wallet" class="pb-3 text-amber-400 hover:text-amber-300 whitespace-nowrap flex items-center gap-1.5">
+            <i data-lucide="wallet" class="w-4 h-4"></i>
+            <span>محفظة الصور المقترحة</span>
+          </button>
         </div>
 
         <div id="admin-tab-content"></div>
@@ -3127,17 +3389,19 @@ body {
     const btnGen = document.getElementById('tab-btn-generator');
     const btnCodes = document.getElementById('tab-btn-codes-list');
     const btnStores = document.getElementById('tab-btn-stores-list');
+    const btnWallet = document.getElementById('tab-btn-wallet');
 
     function setActiveTab(btn) {
-      [btnGen, btnCodes, btnStores].forEach(b => {
-        b.className = 'pb-3 text-gray-400 hover:text-white';
+      [btnGen, btnCodes, btnStores, btnWallet].forEach(b => {
+        if (b) b.className = 'pb-3 text-gray-400 hover:text-white whitespace-nowrap flex items-center gap-1.5';
       });
-      btn.className = 'pb-3 text-indigo-400 border-b-2 border-indigo-500';
+      btn.className = 'pb-3 text-indigo-400 border-b-2 border-indigo-500 whitespace-nowrap flex items-center gap-1.5 font-extrabold';
     }
 
     btnGen.onclick = () => { setActiveTab(btnGen); renderGeneratorView(tabContent); };
     btnCodes.onclick = () => { setActiveTab(btnCodes); renderCodesListView(tabContent); };
     btnStores.onclick = () => { setActiveTab(btnStores); renderStoresListView(tabContent); };
+    btnWallet.onclick = () => { setActiveTab(btnWallet); renderWalletAdminView(tabContent); };
 
     renderGeneratorView(tabContent);
   }
@@ -3278,6 +3542,223 @@ body {
         </div>
       </div>
     `;
+  }
+
+  // Super Admin - Preset Images Wallet Manager
+  async function renderWalletAdminView(contentDiv) {
+    contentDiv.innerHTML = `
+      <div class="space-y-6 text-right">
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-6 border border-amber-500/30">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <i data-lucide="wallet" class="w-6 h-6 text-amber-400"></i>
+                <span>محفظة الصور المقترحة (الصور المشتركة للتجار)</span>
+              </h2>
+              <p class="text-xs text-gray-400 mt-1">ارفع الصور الأكثر استخداماً (ألعاب، بطاقات، اشتراكات) لتظهر لجميع التجار عند إضافة منتجاتهم لتسهيل وتوفير وقتهم.</p>
+            </div>
+            <span id="wallet-count-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap">جاري التحميل...</span>
+          </div>
+
+          <!-- Add Image to Wallet Form -->
+          <form id="admin-add-preset-form" class="space-y-4 p-5 bg-slate-900/80 rounded-2xl border border-slate-800">
+            <h3 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>إضافة صورة جديدة للمحفظة</span>
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-300 mb-1">اسم / عنوان الصورة *</label>
+                <input type="text" id="wallet-img-title" required placeholder="مثال: شدات ببجي 660 UC" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:border-amber-500" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-300 mb-1">القسم / التصنيف *</label>
+                <select id="wallet-img-cat" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-bold focus:border-amber-500">
+                  <option value="ألعاب">ألعاب</option>
+                  <option value="بطاقات">بطاقات</option>
+                  <option value="اشتراكات">اشتراكات</option>
+                  <option value="عام">عام</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-300 mb-1">رابط مباشر (أو اختر ملف للرفع)</label>
+                <input type="url" id="wallet-img-url" placeholder="https://... أو اختر ملف بالأسفل" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-code text-xs text-left focus:border-amber-500" />
+              </div>
+            </div>
+
+            <!-- Image File Upload Box -->
+            <div class="flex items-center gap-4 pt-2">
+              <div id="wallet-preview-box" class="w-16 h-16 rounded-xl aspect-square bg-slate-950 border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <i data-lucide="image" class="w-6 h-6 text-gray-600"></i>
+              </div>
+
+              <div class="flex-1 flex flex-wrap items-center gap-3">
+                <input type="file" id="wallet-file-input" accept="image/*" class="hidden" />
+                <button type="button" id="btn-upload-wallet-file" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 border border-slate-600">
+                  <i data-lucide="upload-cloud" class="w-4 h-4 text-amber-400"></i>
+                  <span>اختيار صورة من الجهاز للرفع</span>
+                </button>
+                <span id="wallet-upload-status" class="text-xs text-gray-400">ستكون الصورة مربعة الشكل تلقائياً</span>
+              </div>
+
+              <button type="submit" id="btn-save-wallet-img" class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-lg transition flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>حفظ في المحفظة</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Search & Grid of Existing Images in Wallet -->
+          <div class="space-y-3 pt-2">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-gray-200">الصور المتوفرة حالياً بالمحفظة للتجار:</h3>
+            </div>
+
+            <div id="admin-wallet-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              <div class="col-span-full py-8 text-center text-gray-500">جاري تحميل الصور...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
+
+    let walletUploadedUrl = '';
+    const fileInput = document.getElementById('wallet-file-input');
+    const btnUpload = document.getElementById('btn-upload-wallet-file');
+    const previewBox = document.getElementById('wallet-preview-box');
+    const uploadStatus = document.getElementById('wallet-upload-status');
+    const urlInput = document.getElementById('wallet-img-url');
+    const grid = document.getElementById('admin-wallet-grid');
+    const countBadge = document.getElementById('wallet-count-badge');
+
+    btnUpload.onclick = () => fileInput.click();
+
+    fileInput.onchange = async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      btnUpload.disabled = true;
+      uploadStatus.innerHTML = `<span class="text-amber-400 font-semibold animate-pulse">جاري تجهيز الصورة...</span>`;
+
+      // Optimized compressed square Data URL (300x300)
+      const dataUrl = await fileToDataUrl(file, 300, 300);
+      walletUploadedUrl = dataUrl;
+      previewBox.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover aspect-square" />`;
+      uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم تجهيز الصورة بنجاح!</span>`;
+
+      // Upload in background to cloud
+      uploadImageToCatbox(file, (msg) => {
+        uploadStatus.innerHTML = `<span class="text-cyan-400 text-xs">${msg}</span>`;
+      }).then(cloudUrl => {
+        if (cloudUrl && (cloudUrl.startsWith('http://') || cloudUrl.startsWith('https://'))) {
+          walletUploadedUrl = cloudUrl;
+          urlInput.value = cloudUrl;
+          uploadStatus.innerHTML = `<span class="text-emerald-400 font-bold">تم الرفع السحابي بنجاح!</span>`;
+        }
+      }).catch(() => {}).finally(() => {
+        btnUpload.disabled = false;
+      });
+    };
+
+    urlInput.oninput = () => {
+      if (urlInput.value.trim()) {
+        walletUploadedUrl = urlInput.value.trim();
+        previewBox.innerHTML = `<img src="${walletUploadedUrl}" class="w-full h-full object-cover aspect-square" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />`;
+      }
+    };
+
+    async function loadAndRenderWalletGrid() {
+      const items = await getPresetImages();
+      countBadge.textContent = `${items.length} صورة متاحة`;
+
+      if (!items.length) {
+        grid.innerHTML = `<div class="col-span-full py-8 text-center text-gray-500">لا توجد صور في المحفظة بعد</div>`;
+        return;
+      }
+
+      grid.innerHTML = items.map(img => `
+        <div class="glass-card rounded-2xl overflow-hidden border border-slate-800 relative group flex flex-col justify-between">
+          <div class="aspect-square bg-slate-950 overflow-hidden relative">
+            <img src="${img.imageUrl}" class="w-full h-full object-cover aspect-square group-hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
+            <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-slate-900/90 text-amber-300 border border-amber-500/30">
+              ${img.category || 'عام'}
+            </span>
+          </div>
+          <div class="p-2.5 text-right flex items-center justify-between gap-1">
+            <span class="text-xs font-bold text-white truncate flex-1">${img.title}</span>
+            <button data-id="${img.id}" class="btn-del-wallet-img p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 rounded-lg transition" title="حذف من المحفظة">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      if (window.lucide) window.lucide.createIcons();
+
+      grid.querySelectorAll('.btn-del-wallet-img').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const confirm = await Swal.fire({
+            title: 'حذف الصورة من المحفظة؟',
+            text: 'لن تظهر هذه الصورة للتجار بعد الآن.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، حذف'
+          });
+          if (confirm.isConfirmed) {
+            await deletePresetImage(id);
+            Swal.fire({ icon: 'success', title: 'تم الحذف', timer: 1000, showConfirmButton: false });
+            loadAndRenderWalletGrid();
+          }
+        };
+      });
+    }
+
+    loadAndRenderWalletGrid();
+
+    // Form submit
+    document.getElementById('admin-add-preset-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('wallet-img-title').value.trim();
+      const category = document.getElementById('wallet-img-cat').value;
+      const finalUrl = walletUploadedUrl || urlInput.value.trim();
+
+      if (!finalUrl) {
+        Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'يرجى رفع صورة أو إدخال رابط صورة' });
+        return;
+      }
+
+      const saveBtn = document.getElementById('btn-save-wallet-img');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<span>جاري الحفظ...</span>`;
+
+      try {
+        await addPresetImage({ title, imageUrl: finalUrl, category });
+        if (window.confetti) window.confetti({ particleCount: 50 });
+        Swal.fire({ icon: 'success', title: 'تمت الإضافة بنجاح للمحفظة!', timer: 1200, showConfirmButton: false });
+        
+        // Reset form
+        document.getElementById('wallet-img-title').value = '';
+        urlInput.value = '';
+        walletUploadedUrl = '';
+        previewBox.innerHTML = `<i data-lucide="image" class="w-6 h-6 text-gray-600"></i>`;
+        uploadStatus.innerHTML = `ستكون الصورة مربعة الشكل تلقائياً`;
+        if (window.lucide) window.lucide.createIcons();
+
+        loadAndRenderWalletGrid();
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'خطأ', text: err.message });
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<i data-lucide="plus" class="w-4 h-4"></i><span>حفظ في المحفظة</span>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+    };
   }
 
   // =========================================================================
@@ -3504,7 +3985,7 @@ body {
         return `
           <div class="glass-card rounded-3xl overflow-hidden flex flex-col justify-between border border-slate-800 shadow-xl group">
             <div>
-              <div class="relative aspect-[3/4] bg-slate-950 overflow-hidden">
+              <div class="relative aspect-square bg-slate-950 overflow-hidden">
                 <img src="${prod.imageUrl || window.DEFAULT_PRODUCT_IMG}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.onerror=null; this.src=window.DEFAULT_PRODUCT_IMG;" />
                 <span class="absolute top-3 right-3 px-3 py-1 rounded-xl text-xs font-bold ${isOutOfStock ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950'} shadow-lg backdrop-blur-md">
                   ${isOutOfStock ? 'نفذت الكمية ❌' : `متوفر: ${prod.quantity}`}
