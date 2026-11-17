@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>المتجر الإلكتروني • صفقات وتسوق فوري</title>
+  <title>المتجر الإلكتروني المعتمد • تسوق فوري وصفقات آمنة</title>
   
   <!-- SEO & Social Meta -->
-  <meta name="description" content="المتجر الإلكتروني الرسمي - تسوق المنتجات وعروض التبديل والصفقات الفورية المضمونة." />
-  <meta property="og:title" content="المتجر الإلكتروني • تسوق وصفقات فورية" />
-  <meta property="og:description" content="تسوق أفضل المنتجات وعروض التبديل والصفقات الفورية بكل سهولة وأمان." />
+  <meta name="description" content="المتجر الإلكتروني الرسمي - تسوق أفضل العروض والمنتجات المضمونة وخدمات التبديل والشحن الفوري." />
+  <meta property="og:title" content="المتجر الإلكتروني المعتمد • تسوق فوري وصفقات آمنة" />
+  <meta property="og:description" content="المتجر الرسمي لتسوق أفضل المنتجات والحسابات وعروض التبديل والصفقات الموثقة." />
+  <meta name="twitter:title" content="المتجر الإلكتروني المعتمد • تسوق فوري وصفقات آمنة" />
+  <meta name="twitter:description" content="المتجر الرسمي لتسوق أفضل المنتجات والحسابات وعروض التبديل والصفقات الموثقة." />
 
   <!-- Google Fonts: Cairo & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -271,17 +273,16 @@ body {
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-slate-950">
 
-  <!-- Top Navigation Bar -->
+  <!-- Top Navigation Bar (Dynamically updated per store / merchant / visitor) -->
   <header id="main-navbar" class="sticky top-0 z-40 glass-nav transition-all">
     <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-      
-      <!-- Brand Logo -->
+      <!-- Neutral Brand Logo -->
       <a href="#" class="flex items-center gap-3 group">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition font-black text-white text-base">
-          AMG
+          <i data-lucide="shopping-bag" class="w-5 h-5 text-white"></i>
         </div>
         <div>
-          <span class="font-black text-xl text-white tracking-wider">AMG</span>
+          <span class="font-black text-xl text-white tracking-wider">منصة المتاجر</span>
         </div>
       </a>
 
@@ -291,7 +292,7 @@ body {
           الرئيسية
         </a>
         <a href="#register" class="nav-link-btn px-3 py-2 rounded-xl text-gray-300 hover:text-white transition" data-nav="register">
-          إنشاء متجر بكود
+          إنشاء متجر جديد
         </a>
         <a href="#merchant" class="nav-link-btn px-3 py-2 rounded-xl text-gray-300 hover:text-white transition" data-nav="merchant">
           لوحة التاجر
@@ -317,7 +318,6 @@ body {
           <i data-lucide="user" class="w-5 h-5"></i>
         </a>
       </div>
-
     </div>
   </header>
 
@@ -329,9 +329,9 @@ body {
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-2">
         <div class="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-black text-[10px]">
-          AMG
+          <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
         </div>
-        <span>AMG &copy; 2026 • جميع الحقوق محفوظة</span>
+        <span>جميع الحقوق محفوظة &copy; 2026 • منصة المتاجر المستقلة</span>
       </div>
 
       <div class="flex items-center gap-4 text-xs font-semibold">
@@ -1721,21 +1721,21 @@ body {
   let countdownInterval = null;
 
   function parseCurrentRoute() {
+    const hash = window.location.hash.replace(/^#\/?/, '').trim();
+    if (hash === 'admin') return { view: 'admin' };
+    if (hash === 'merchant' || hash === 'login') return { view: 'merchant' };
+    if (hash === 'register' || hash === 'create') return { view: 'register' };
+
     const urlParams = new URLSearchParams(window.location.search);
     const storeParam = urlParams.get('store');
     if (storeParam) {
       return { view: 'store', slug: storeParam.trim().toLowerCase() };
     }
 
-    const hash = window.location.hash.replace(/^#\/?/, '').trim();
-
     if (hash.startsWith('store/')) {
       const slug = hash.replace('store/', '').trim().toLowerCase();
       return { view: 'store', slug };
     }
-    if (hash === 'admin') return { view: 'admin' };
-    if (hash === 'merchant' || hash === 'login') return { view: 'merchant' };
-    if (hash === 'register' || hash === 'create') return { view: 'register' };
 
     // Subdomain check
     const host = window.location.hostname.toLowerCase();
@@ -1744,7 +1744,7 @@ body {
       if (sub && sub !== 'www') return { view: 'store', slug: sub };
     }
 
-    if (hash && !['home', 'contact', 'about'].includes(hash)) {
+    if (hash && !['home', 'contact', 'about', 'store-products', 'store-trades'].includes(hash)) {
       return { view: 'store', slug: hash.toLowerCase() };
     }
 
@@ -1764,6 +1764,209 @@ body {
     });
   }
 
+  // =========================================================================
+  // Dynamic White-Label Navbar Engine (Store / Merchant / Platform)
+  // =========================================================================
+  function renderNavbarForStore(store, cartCount = 0) {
+    const navbar = document.getElementById('main-navbar');
+    if (!navbar) return;
+    navbar.classList.remove('hidden');
+
+    const currentMerchant = getCurrentMerchant();
+    const isOwner = currentMerchant && (currentMerchant.slug === store.slug || currentMerchant.uid === store.ownerUid);
+
+    navbar.innerHTML = `
+      <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <!-- Store Brand Identity (No Platform Mentions) -->
+        <a href="?store=${store.slug}" class="flex items-center gap-3 group">
+          <div class="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 border border-slate-700/80 flex items-center justify-center shadow-md flex-shrink-0">
+            ${store.logoUrl ? `<img src="${store.logoUrl}" class="w-full h-full object-cover" />` : `<i data-lucide="shopping-bag" class="w-5 h-5 text-cyan-400"></i>`}
+          </div>
+          <div class="text-right">
+            <span class="font-black text-base sm:text-lg text-white group-hover:text-cyan-300 transition block leading-tight">${store.name || 'المتجر'}</span>
+            <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+              <span>متجر إلكتروني معتمد</span>
+            </span>
+          </div>
+        </a>
+
+        <!-- Store Navigation -->
+        <nav class="hidden md:flex items-center gap-2 sm:gap-3 text-xs font-bold">
+          <a href="#store-products" class="store-nav-link px-3 py-1.5 rounded-xl text-gray-300 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-1.5">
+            <i data-lucide="package" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>المنتجات</span>
+          </a>
+          <a href="#store-trades" class="store-nav-link px-3 py-1.5 rounded-xl text-gray-300 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-1.5">
+            <i data-lucide="arrow-left-right" class="w-3.5 h-3.5 text-purple-400"></i>
+            <span>عروض المقايضة</span>
+          </a>
+          ${store.whatsapp ? `
+            <a href="${formatEgyptianWaLink(store.whatsapp, 'مرحباً، أود الاستفسار عن منتجات متجر ' + store.name)}" target="_blank" class="px-3 py-1.5 rounded-xl text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/10 transition flex items-center gap-1">
+              <i data-lucide="message-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>واتساب</span>
+            </a>
+          ` : ''}
+          ${store.telegram ? `
+            <a href="${formatTelegramLink(store.telegram)}" target="_blank" class="px-3 py-1.5 rounded-xl text-sky-300 hover:text-sky-200 hover:bg-sky-500/10 transition flex items-center gap-1">
+              <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>تلجرام</span>
+            </a>
+          ` : ''}
+        </nav>
+
+        <!-- Store Actions -->
+        <div class="flex items-center gap-2.5">
+          <button id="nav-btn-open-cart" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition cursor-pointer">
+            <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+            <span>السلة</span>
+            <span id="nav-cart-badge" class="px-1.5 py-0.2 rounded-full bg-white text-slate-950 font-black text-[10px] min-w-[18px] text-center">${cartCount}</span>
+          </button>
+          ${isOwner ? `
+            <a href="#merchant" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold transition flex items-center gap-1 border border-slate-700">
+              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">لوحة متجري</span>
+            </a>
+          ` : ''}
+        </div>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+
+    const cartBtn = document.getElementById('nav-btn-open-cart');
+    if (cartBtn) {
+      cartBtn.onclick = () => {
+        const openCartBtn = document.getElementById('btn-open-cart-modal');
+        if (openCartBtn) openCartBtn.click();
+      };
+    }
+
+    navbar.querySelectorAll('.store-nav-link').forEach(link => {
+      link.onclick = (e) => {
+        e.preventDefault();
+        const targetHash = link.getAttribute('href');
+        if (targetHash === '#store-products') {
+          const tabBtn = document.getElementById('tab-btn-products');
+          if (tabBtn) tabBtn.click();
+          window.scrollTo({ top: 380, behavior: 'smooth' });
+        } else if (targetHash === '#store-trades') {
+          const tabBtn = document.getElementById('tab-btn-trades');
+          if (tabBtn) tabBtn.click();
+          window.scrollTo({ top: 380, behavior: 'smooth' });
+        }
+      };
+    });
+  }
+
+  function renderNavbarForMerchant(store) {
+    const navbar = document.getElementById('main-navbar');
+    if (!navbar) return;
+    navbar.classList.remove('hidden');
+
+    navbar.innerHTML = `
+      <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <!-- Store Identity for Merchant -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 border border-cyan-500/30 flex items-center justify-center shadow-md flex-shrink-0">
+            ${store && store.logoUrl ? `<img src="${store.logoUrl}" class="w-full h-full object-cover" />` : `<i data-lucide="store" class="w-5 h-5 text-cyan-400"></i>`}
+          </div>
+          <div class="text-right">
+            <span class="font-black text-base sm:text-lg text-white block leading-tight">${store ? store.name : 'لوحة تحكم المتجر'}</span>
+            <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+              <span>لوحة إدارة متجرك</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Quick Merchant Actions (Zero Platform Clutter) -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          ${store ? `
+            <a href="?store=${store.slug}" target="_blank" class="px-3 sm:px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-cyan-600/20">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              <span>معاينة المتجر 👁️</span>
+            </a>
+          ` : ''}
+          <button id="nav-btn-merchant-logout" class="px-3 py-2 bg-slate-800/90 hover:bg-rose-950/40 text-gray-300 hover:text-rose-400 border border-slate-700/80 hover:border-rose-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">تسجيل الخروج</span>
+          </button>
+        </div>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+
+    const logoutBtn = document.getElementById('nav-btn-merchant-logout');
+    if (logoutBtn) {
+      logoutBtn.onclick = async () => {
+        const conf = await Swal.fire({
+          title: 'تسجيل الخروج؟',
+          text: 'هل أنت متأكد من تسجيل الخروج من لوحة تحكم المتجر؟',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'نعم، تسجيل الخروج',
+          cancelButtonText: 'إلغاء'
+        });
+        if (conf.isConfirmed) {
+          await logoutMerchant();
+          window.location.hash = 'merchant';
+          navigate();
+        }
+      };
+    }
+  }
+
+  function renderNavbarDefault() {
+    const navbar = document.getElementById('main-navbar');
+    if (!navbar) return;
+    navbar.classList.remove('hidden');
+
+    const currentMerchant = getCurrentMerchant();
+
+    navbar.innerHTML = `
+      <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <!-- Platform Brand -->
+        <a href="#" class="flex items-center gap-3 group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition font-black text-white text-base">
+            <i data-lucide="shopping-bag" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <span class="font-black text-xl text-white tracking-wider">منصة المتاجر</span>
+          </div>
+        </a>
+
+        <!-- Navigation Links -->
+        <nav class="hidden md:flex items-center gap-2 text-xs font-bold">
+          <a href="#" class="nav-link-btn px-3 py-2 rounded-xl text-gray-300 hover:text-white transition" data-nav="home">
+            الرئيسية
+          </a>
+          <a href="#register" class="nav-link-btn px-3 py-2 rounded-xl text-gray-300 hover:text-white transition" data-nav="register">
+            إنشاء متجر جديد
+          </a>
+          <a href="#merchant" class="nav-link-btn px-3 py-2 rounded-xl text-gray-300 hover:text-white transition" data-nav="merchant">
+            ${currentMerchant ? 'لوحة متجري' : 'دخول التاجر'}
+          </a>
+        </nav>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-3">
+          ${currentMerchant ? `
+            <a href="#merchant" class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 hover:opacity-95 text-slate-950 font-black rounded-xl text-xs shadow-md shadow-cyan-500/20 transition flex items-center gap-1.5">
+              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+              <span>لوحة متجري</span>
+            </a>
+          ` : `
+            <a href="#register" class="btn-trigger-register px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 hover:opacity-95 text-slate-950 font-black rounded-xl text-xs shadow-md shadow-cyan-500/20 transition flex items-center gap-1.5">
+              <i data-lucide="key" class="w-3.5 h-3.5"></i>
+              <span>معي كود تفعيل</span>
+            </a>
+          `}
+        </div>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+  }
+
   async function navigate(targetHash = null) {
     if (targetHash !== null) {
       if (window.location.hash !== targetHash) {
@@ -1774,34 +1977,31 @@ body {
 
     const route = parseCurrentRoute();
     const mainContainer = document.getElementById('main-content');
-    const navbar = document.getElementById('main-navbar');
 
     if (!mainContainer) return;
     mainContainer.innerHTML = '';
 
     switch (route.view) {
       case 'store':
-        if (navbar) navbar.classList.add('hidden');
+        renderNavbarForStore({ name: route.slug, slug: route.slug }, 0);
         mainContainer.innerHTML = `<div id="storefront-container"></div>`;
         initStorefront(route.slug, document.getElementById('storefront-container'));
         break;
 
       case 'admin':
-        if (navbar) navbar.classList.remove('hidden');
+        renderNavbarDefault();
         updateNavHighlight('admin');
         mainContainer.innerHTML = `<div id="admin-container"></div>`;
         renderAdminView();
         break;
 
       case 'merchant':
-        if (navbar) navbar.classList.remove('hidden');
-        updateNavHighlight('merchant');
         mainContainer.innerHTML = `<div id="merchant-container"></div>`;
         initMerchantModule('dashboard');
         break;
 
       case 'register':
-        if (navbar) navbar.classList.remove('hidden');
+        renderNavbarDefault();
         updateNavHighlight('register');
         mainContainer.innerHTML = `<div id="merchant-container"></div>`;
         initMerchantModule('register');
@@ -1809,7 +2009,7 @@ body {
 
       case 'landing':
       default:
-        if (navbar) navbar.classList.remove('hidden');
+        renderNavbarDefault();
         updateNavHighlight('home');
         renderLandingPage(mainContainer);
         break;
@@ -1830,9 +2030,9 @@ body {
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div class="flex items-center gap-2">
             <div class="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-black text-[10px]">
-              AMG
+              <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
             </div>
-            <span>AMG &copy; 2026 • جميع الحقوق محفوظة</span>
+            <span>جميع الحقوق محفوظة &copy; 2026 • منصة المتاجر المستقلة</span>
           </div>
 
           <div class="flex items-center gap-4 text-xs font-semibold">
@@ -1855,7 +2055,7 @@ body {
         <div class="max-w-4xl mx-auto space-y-6 relative z-10">
           <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border-cyan-500/30 text-xs text-cyan-300 font-code shimmer-badge">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span>AMG • منصة المتاجر الإلكترونية المتكاملة</span>
+            <span>منصة المتاجر الإلكترونية المستقلة</span>
           </div>
 
           <h1 class="text-3xl sm:text-5xl md:text-6xl font-black text-white leading-tight">
@@ -1889,7 +2089,7 @@ body {
 
       <section class="max-w-6xl mx-auto py-12 px-4">
         <div class="text-center mb-12">
-          <h2 class="text-2xl sm:text-3xl font-black text-white">مميزات منصة AMG الفائقة</h2>
+          <h2 class="text-2xl sm:text-3xl font-black text-white">مميزات المنصة والمتاجر المستقلة</h2>
           <p class="text-sm text-gray-400 mt-2">مصممة خصيصاً لتلبي كافة احتياجات إدارة المتاجر والشحن الفوري باحترافية</p>
         </div>
 
@@ -2010,6 +2210,7 @@ body {
   }
 
   function renderMerchantRegistration(container, existingSession = null) {
+    renderNavbarDefault();
     let validatedCode = null;
     let uploadedLogoUrl = '';
 
@@ -2020,7 +2221,7 @@ body {
           <div class="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 text-cyan-400 mb-3">
             <i data-lucide="sparkles" class="w-8 h-8"></i>
           </div>
-          <h2 class="text-2xl sm:text-3xl font-black text-white">AMG • تفعيل متجر جديد</h2>
+          <h2 class="text-2xl sm:text-3xl font-black text-white">تفعيل متجر إلكتروني جديد</h2>
           <p class="text-gray-400 text-sm mt-1">أدخل كود الاشتراك لتفعيل متجرك وتحديد مدة الصلاحية</p>
         </div>
 
@@ -2455,6 +2656,7 @@ body {
   // 10. Merchant Login & Expired Screen
   // =========================================================================
   function renderMerchantLogin(container) {
+    renderNavbarDefault();
     container.innerHTML = `
       <div class="max-w-md mx-auto my-12 p-8 glass-panel rounded-3xl text-center shadow-2xl border border-indigo-500/20">
         <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
@@ -2530,6 +2732,7 @@ body {
 
   function renderExpiredSubscriptionScreen(container, store) {
     if (countdownInterval) clearInterval(countdownInterval);
+    renderNavbarForMerchant(store);
 
     container.innerHTML = `
       <div class="max-w-xl mx-auto my-12 p-8 sm:p-10 glass-panel rounded-3xl text-center shadow-2xl border border-rose-500/30">
@@ -2630,6 +2833,7 @@ body {
   // =========================================================================
   async function renderMerchantDashboard(container, store) {
     if (countdownInterval) clearInterval(countdownInterval);
+    renderNavbarForMerchant(store);
     const directStoreUrl = getStoreDirectUrl(store.slug);
 
     container.innerHTML = `
@@ -4345,7 +4549,7 @@ body {
               <i data-lucide="crown" class="w-8 h-8 text-amber-300"></i>
             </div>
             <div>
-              <h1 class="text-2xl font-black text-white">إدارة منصة AMG</h1>
+              <h1 class="text-2xl font-black text-white">لوحة الإدارة السريعة</h1>
               <p class="text-sm text-gray-400">توليد أكواد الاشتراكات، محفظة الصور المقترحة للتجار، ومراقبة المتاجر</p>
             </div>
           </div>
@@ -4794,7 +4998,7 @@ body {
       return;
     }
 
-    // Dynamic Title, Meta Tags & Standalone Store Footer
+    // Dynamic Title, Meta Tags & Standalone Store Header & Footer
     document.title = `${store.name} • المتجر الرسمي`;
     const ogTitleEl = document.querySelector('meta[property="og:title"]');
     if (ogTitleEl) ogTitleEl.content = `${store.name} • المتجر الرسمي`;
@@ -4802,6 +5006,13 @@ body {
     if (ogDescEl) ogDescEl.content = store.bio || `أهلاً بكم في متجر ${store.name} - تسوق أفضل المنتجات وعروض البدل المباشرة.`;
     const metaDescEl = document.querySelector('meta[name="description"]');
     if (metaDescEl) metaDescEl.content = store.bio || `متجر ${store.name} الرسمي`;
+    if (store.logoUrl) {
+      const ogImgEl = document.querySelector('meta[property="og:image"]');
+      if (ogImgEl) ogImgEl.content = store.logoUrl;
+    }
+
+    // Render Store's dedicated top navbar
+    renderNavbarForStore(store, 0);
 
     const mainFooter = document.getElementById('main-footer');
     if (mainFooter) {
@@ -4868,6 +5079,9 @@ body {
 
       const totalCount = getCartTotalCount();
       const totalAmount = getCartTotalPrice();
+
+      const navBadge = document.getElementById('nav-cart-badge');
+      if (navBadge) navBadge.textContent = totalCount;
 
       if (!cartBar) return;
 
